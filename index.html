@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>peijumu zzz</title>
+  <meta name="description" content="Music for rooms, film & quiet hours.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=DM+Mono:wght@300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body class="page-home">
+
+  <!-- =====================================================
+       HEADER — site name + tagline (fixed, top-left)
+  ====================================================== -->
+  <header class="site-header">
+    <a href="index.html" class="site-name">peijumu zzz</a>
+    <p class="site-tagline">sounds for quiet rooms</p>
+  </header>
+
+  <!-- =====================================================
+       ROOM SCENE — full-screen interactive room
+
+       Each .room-object has these data attributes:
+         data-src   → path to audio file  ← REPLACE THIS
+         data-title → track name shown in mini player
+         data-type  → genre / mood label
+  ====================================================== -->
+  <main class="room-scene" id="roomScene" aria-label="Interactive room — click objects to play music">
+
+    <!-- Room background: wall + floor layers -->
+    <div class="room-wall"    aria-hidden="true"></div>
+    <div class="room-floor"   aria-hidden="true"></div>
+    <div class="room-divider" aria-hidden="true"></div>
+
+    <!-- ── 1. Window ────────────────────────────────────
+         Replace song1.mp3 with your audio file path.
+    ──────────────────────────────────────────────────── -->
+    <div class="room-object obj-window"
+         data-src="assets/audio/song1.mp3"
+         data-title="3:17 AM"
+         data-type="Ambient"
+         role="button" tabindex="0"
+         aria-label="Play 3:17 AM">
+      <div class="win-frame">
+        <div class="win-bar-v"></div>
+        <div class="win-bar-h"></div>
+        <div class="win-glow"></div>
+      </div>
+      <div class="win-curtain-l"></div>
+      <div class="win-curtain-r"></div>
+      <span class="obj-tooltip">3:17 AM</span>
+    </div>
+
+    <!-- ── 2. Floor Lamp ─────────────────────────────── -->
+    <div class="room-object obj-lamp"
+         data-src="assets/audio/song2.mp3"
+         data-title="Corner Light"
+         data-type="Instrumental"
+         role="button" tabindex="0"
+         aria-label="Play Corner Light">
+      <div class="lamp-shade"></div>
+      <div class="lamp-bulb"></div>
+      <div class="lamp-pole"></div>
+      <div class="lamp-base"></div>
+      <div class="lamp-glow" aria-hidden="true"></div>
+      <span class="obj-tooltip">Corner Light</span>
+    </div>
+
+    <!-- ── 3. Speaker ────────────────────────────────── -->
+    <div class="room-object obj-speaker"
+         data-src="assets/audio/song3.mp3"
+         data-title="White Noise"
+         data-type="Electronic"
+         role="button" tabindex="0"
+         aria-label="Play White Noise">
+      <div class="spk-body">
+        <div class="spk-grille">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
+        <div class="spk-cone"></div>
+        <div class="spk-dial"></div>
+      </div>
+      <div class="spk-shadow"></div>
+      <span class="obj-tooltip">White Noise</span>
+    </div>
+
+    <!-- ── 4. Headphones ─────────────────────────────── -->
+    <div class="room-object obj-headphones"
+         data-src="assets/audio/song4.mp3"
+         data-title="Closed Eyes"
+         data-type="Intimate"
+         role="button" tabindex="0"
+         aria-label="Play Closed Eyes">
+      <svg class="hp-svg" viewBox="0 0 84 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Band -->
+        <path d="M 13 44 Q 13 10 42 10 Q 71 10 71 44"
+              stroke="#2c2a27" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+        <!-- Left cup -->
+        <rect x="3"  y="40" width="20" height="28" rx="8" fill="#2c2a27"/>
+        <!-- Right cup -->
+        <rect x="61" y="40" width="20" height="28" rx="8" fill="#2c2a27"/>
+        <!-- Left pad -->
+        <rect x="7"  y="45" width="12" height="18" rx="5" fill="#444240"/>
+        <!-- Right pad -->
+        <rect x="65" y="45" width="12" height="18" rx="5" fill="#444240"/>
+        <!-- Cable hint -->
+        <line x1="42" y1="10" x2="42" y2="2" stroke="#2c2a27" stroke-width="2"/>
+      </svg>
+      <span class="obj-tooltip">Closed Eyes</span>
+    </div>
+
+    <!-- ── 5. Bed ─────────────────────────────────────── -->
+    <div class="room-object obj-bed"
+         data-src="assets/audio/song5.mp3"
+         data-title="Linen"
+         data-type="Ambient"
+         role="button" tabindex="0"
+         aria-label="Play Linen">
+      <div class="bed-headboard">
+        <div class="headboard-pad"></div>
+      </div>
+      <div class="bed-frame">
+        <div class="bed-pillow pl"></div>
+        <div class="bed-pillow pr"></div>
+        <div class="bed-blanket">
+          <div class="blanket-fold"></div>
+        </div>
+      </div>
+      <div class="bed-leg-l"></div>
+      <div class="bed-leg-r"></div>
+      <span class="obj-tooltip">Linen</span>
+    </div>
+
+    <!-- ── 6. Desk ────────────────────────────────────── -->
+    <div class="room-object obj-desk"
+         data-src="assets/audio/song6.mp3"
+         data-title="Blueprint"
+         data-type="Focus"
+         role="button" tabindex="0"
+         aria-label="Play Blueprint">
+      <div class="desk-top"></div>
+      <div class="desk-front"></div>
+      <div class="desk-leg dl"></div>
+      <div class="desk-leg dr"></div>
+      <span class="obj-tooltip">Blueprint</span>
+    </div>
+
+    <!-- ── 7. Chair ───────────────────────────────────── -->
+    <div class="room-object obj-chair"
+         data-src="assets/audio/song7.mp3"
+         data-title="Sitting Still"
+         data-type="Introspective"
+         role="button" tabindex="0"
+         aria-label="Play Sitting Still">
+      <div class="ch-back">
+        <div class="ch-back-top"></div>
+      </div>
+      <div class="ch-seat"></div>
+      <div class="ch-leg fl"></div>
+      <div class="ch-leg fr"></div>
+      <div class="ch-leg bl"></div>
+      <div class="ch-leg br"></div>
+      <span class="obj-tooltip">Sitting Still</span>
+    </div>
+
+    <!-- ── 8. Laptop ──────────────────────────────────── -->
+    <div class="room-object obj-laptop"
+         data-src="assets/audio/song8.mp3"
+         data-title="Dormant"
+         data-type="Digital"
+         role="button" tabindex="0"
+         aria-label="Play Dormant">
+      <div class="lp-lid">
+        <div class="lp-screen"></div>
+        <div class="lp-camera"></div>
+      </div>
+      <div class="lp-hinge"></div>
+      <div class="lp-base">
+        <div class="lp-keyboard"></div>
+        <div class="lp-trackpad"></div>
+      </div>
+      <span class="obj-tooltip">Dormant</span>
+    </div>
+
+    <!-- ── 9. Coffee Cup ─────────────────────────────── -->
+    <div class="room-object obj-cup"
+         data-src="assets/audio/song9.mp3"
+         data-title="Herbal"
+         data-type="Soft"
+         role="button" tabindex="0"
+         aria-label="Play Herbal">
+      <div class="cup-steam" aria-hidden="true">
+        <i></i><i></i><i></i>
+      </div>
+      <div class="cup-body">
+        <div class="cup-rim"></div>
+        <div class="cup-liquid"></div>
+        <div class="cup-handle"></div>
+      </div>
+      <div class="cup-saucer"></div>
+      <span class="obj-tooltip">Herbal</span>
+    </div>
+
+    <!-- ── 10. Rug ────────────────────────────────────── -->
+    <div class="room-object obj-rug"
+         data-src="assets/audio/song10.mp3"
+         data-title="Ground"
+         data-type="Drone"
+         role="button" tabindex="0"
+         aria-label="Play Ground">
+      <div class="rug-inner"></div>
+      <div class="rug-fringe-t"></div>
+      <div class="rug-fringe-b"></div>
+      <span class="obj-tooltip">Ground</span>
+    </div>
+
+  </main>
+
+  <!-- =====================================================
+       MINI PLAYER — fixed bottom-right
+       Shows current track name, play/pause, progress bar.
+  ====================================================== -->
+  <div class="mini-player" id="miniPlayer" aria-label="Music player" aria-live="polite">
+    <div class="player-info">
+      <span class="player-type"  id="playerType"></span>
+      <span class="player-title" id="playerTitle">— nothing playing —</span>
+    </div>
+    <div class="player-controls">
+      <button class="player-btn" id="playerBtn" aria-label="Play / Pause">
+        <!-- Play icon -->
+        <svg class="ico ico-play" viewBox="0 0 16 16"><polygon points="3,1 13,8 3,15" fill="currentColor"/></svg>
+        <!-- Pause icon -->
+        <svg class="ico ico-pause" viewBox="0 0 16 16">
+          <rect x="2" y="1" width="4.5" height="14" rx="1" fill="currentColor"/>
+          <rect x="9.5" y="1" width="4.5" height="14" rx="1" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="player-stop-btn" id="playerStop" aria-label="Stop">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <div class="player-bar" aria-hidden="true">
+      <div class="player-progress" id="playerProgress"></div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       WORKS LINK — fixed bottom-right, above player
+  ====================================================== -->
+  <a href="works.html" class="works-nav-link" aria-label="View all works and contact">
+    works &amp; contact →
+  </a>
+
+  <script src="script.js"></script>
+</body>
+</html>
