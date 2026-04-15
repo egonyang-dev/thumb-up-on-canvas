@@ -286,7 +286,7 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
 #btn-dismiss-share:hover { color: #555; }
 
 /* ============================================================
-   LIKE UI  (world-space, shown only when zoomed in close)
+   LIKE UI  (world-space, shown only for the focused thumb)
    ============================================================ */
 .thumb-like-ui {
   position: absolute;
@@ -300,11 +300,11 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
   color: #bbb;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s;
+  transition: opacity 0.4s ease;
   white-space: nowrap;
   transform-origin: top center;
 }
-body[data-zoom="close"] .thumb-like-ui {
+.thumb-like-ui.focus-active {
   opacity: 1;
   pointer-events: all;
 }

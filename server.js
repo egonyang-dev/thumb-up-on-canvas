@@ -11,6 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── Storage ──────────────────────────────────────────────────────────────────
 let pool = null;
 const FALLBACK = path.join(__dirname, '.data', 'thumbs.json');
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 if (process.env.DATABASE_URL) {
   pool = new Pool({
@@ -38,7 +39,17 @@ if (process.env.DATABASE_URL) {
     )
   `)
   .then(() => pool.query('ALTER TABLE thumbs ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0'))
-  .catch(e => console.error('[db] init error:', e.message));
+  .then(() => console.log('[storage] mode: postgres'))
+  .catch(e => {
+    console.error('[db] init error:', e.message);
+    if (IS_PRODUCTION) console.error('[storage] WARN: postgres init failed — data will NOT persist on Render');
+  });
+} else {
+  if (IS_PRODUCTION) {
+    console.error('[storage] ERROR: DATABASE_URL is not set in production. Thumbs will be lost on restart.');
+  } else {
+    console.log('[storage] mode: local file fallback (dev only) →', FALLBACK);
+  }
 }
 
 function readFallback() {
@@ -71,6 +82,11 @@ function row2obj(r) {
     createdAt:     r.created_at,
   };
 }
+
+// ── GET /api/health ──────────────────────────────────────────────────────────
+app.get('/api/health', (_req, res) => {
+  res.json({ storage: pool ? 'postgres' : 'file-fallback', uptime: process.uptime() });
+});
 
 // ── GET /api/thumbs ──────────────────────────────────────────────────────────
 app.get('/api/thumbs', async (_req, res) => {

@@ -12,8 +12,6 @@ const CONFIG = {
   frame: { w: 110, h: 150 },
 };
 
-const LIKE_ZOOM_THRESHOLD = 1.4;
-
 const TEXT_PRESETS = [
   '我有按讚',
   '我愛此網站',
@@ -290,7 +288,7 @@ const ZoomPan = (() => {
     if (!worldEl) return;
     worldEl.style.transition = ms > 0 ? `transform ${ms}ms cubic-bezier(0.4,0,0.2,1)` : 'none';
     worldEl.style.transform  = `translate(${offsetX}px,${offsetY}px) scale(${scale})`;
-    if (zoomCb) zoomCb(scale);
+    if (zoomCb) zoomCb(scale, offsetX, offsetY);
   }
 
   function screenToWorld(sx, sy) { return { x: (sx-offsetX)/scale, y: (sy-offsetY)/scale }; }
@@ -381,6 +379,8 @@ const ThumbRenderer = (() => {
       `<span class="like-count">${count > 0 ? count : ''}</span>` +
       `<button class="like-btn${isLiked ? ' liked' : ''}" data-thumb-id="${data.id}">+</button>`;
     worldEl.appendChild(likeEl);
+
+    LikeFocusSystem.register(data.id, data.wx, data.wy, dW, dH);
   }
 
   function renderAll(list) { list.forEach(renderOne); }
@@ -417,6 +417,82 @@ const LikeSystem = (() => {
   }
 
   return { isLiked, like };
+})();
+
+/* ============================================================
+   LIKE FOCUS SYSTEM — one thumb at a time, screen-space aware
+   ============================================================ */
+const LikeFocusSystem = (() => {
+  // Each entry: { id, wx, wy, dW, dH }
+  const registry = [];
+  let activeId       = null;
+  let debounceTimer  = null;
+
+  // Thumb screen-width must reach this to be eligible
+  const MIN_SCREEN_PX = 80;
+  // Current active thumb gets this lead (px) before we switch to a closer one
+  const HYSTERESIS_PX = 70;
+
+  function register(id, wx, wy, dW, dH) {
+    registry.push({ id, wx, wy, dW, dH });
+  }
+
+  // Called on every pan/zoom; debounces the actual DOM update
+  function update(scale, offsetX, offsetY) {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => _pick(scale, offsetX, offsetY), 180);
+  }
+
+  function _screenCenter(t, scale, offsetX, offsetY) {
+    return {
+      sx: t.wx * scale + offsetX,
+      sy: t.wy * scale + offsetY,
+    };
+  }
+
+  function _pick(scale, offsetX, offsetY) {
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+
+    let bestId   = null;
+    let bestDist = Infinity;
+
+    for (const t of registry) {
+      if (t.dW * scale < MIN_SCREEN_PX) continue;           // too small on screen
+      const { sx, sy } = _screenCenter(t, scale, offsetX, offsetY);
+      // reject thumbs whose screen-center is completely off-screen
+      if (sx < -200 || sx > window.innerWidth  + 200) continue;
+      if (sy < -200 || sy > window.innerHeight + 200) continue;
+      const dist = Math.hypot(sx - cx, sy - cy);
+      if (dist < bestDist) { bestDist = dist; bestId = t.id; }
+    }
+
+    // Hysteresis: keep current active if it's still eligible and not much farther
+    if (activeId && bestId && activeId !== bestId) {
+      const curr = registry.find(t => t.id === activeId);
+      if (curr && curr.dW * scale >= MIN_SCREEN_PX) {
+        const { sx, sy } = _screenCenter(curr, scale, offsetX, offsetY);
+        const currDist = Math.hypot(sx - cx, sy - cy);
+        if (currDist < bestDist + HYSTERESIS_PX) bestId = activeId;
+      }
+    }
+
+    if (bestId === activeId) return;
+
+    // Deactivate old
+    if (activeId) {
+      document.querySelectorAll(`.thumb-like-ui[data-thumb-id="${activeId}"]`)
+        .forEach(el => el.classList.remove('focus-active'));
+    }
+    activeId = bestId;
+    // Activate new
+    if (activeId) {
+      document.querySelectorAll(`.thumb-like-ui[data-thumb-id="${activeId}"]`)
+        .forEach(el => el.classList.add('focus-active'));
+    }
+  }
+
+  return { register, update };
 })();
 
 /* ============================================================
@@ -666,9 +742,9 @@ const App = (() => {
     DrawCanvas.init();
     Share.init();
 
-    // Zoom level → like UI visibility
-    ZoomPan.setZoomCallback(s => {
-      document.body.dataset.zoom = s >= LIKE_ZOOM_THRESHOLD ? 'close' : 'far';
+    // Pan/zoom → update which thumb gets the like focus
+    ZoomPan.setZoomCallback((scale, offsetX, offsetY) => {
+      LikeFocusSystem.update(scale, offsetX, offsetY);
     });
 
     const thumbs = await StorageAdapter.load();
