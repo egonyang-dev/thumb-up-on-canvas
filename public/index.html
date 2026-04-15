@@ -34,7 +34,25 @@
 
   <!-- Share / download panel -->
   <div id="share-panel" class="hidden">
+    <button id="btn-dismiss-share" aria-label="close">×</button>
     <p class="share-label">Saved.</p>
+
+    <!-- Text presets (injected by JS) -->
+    <div id="text-presets"></div>
+
+    <!-- Style row -->
+    <div id="style-row">
+      <div id="color-swatches">
+        <button class="swatch active" data-color="black" title="Black"></button>
+        <button class="swatch" data-color="blue"  title="Blue"></button>
+        <button class="swatch" data-color="gray"  title="Gray"></button>
+      </div>
+      <div id="font-btns">
+        <button class="font-btn active" data-font="mono">Mono</button>
+        <button class="font-btn" data-font="sans">Sans</button>
+      </div>
+    </div>
+
     <input
       id="ig-handle"
       type="text"
@@ -43,8 +61,13 @@
       autocomplete="off"
       spellcheck="false"
     >
-    <button id="btn-download">Download image</button>
-    <button id="btn-dismiss-share" aria-label="close">×</button>
+
+    <div id="share-actions">
+      <button id="btn-share">Share</button>
+      <button id="btn-download">Download</button>
+      <button id="btn-copy-link">Copy link</button>
+    </div>
+    <p id="share-status"></p>
   </div>
 
   <!-- Floating notification -->

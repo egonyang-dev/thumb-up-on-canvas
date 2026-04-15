@@ -34,7 +34,7 @@ html, body {
 
 body[data-state="awaiting_click"] #viewport { cursor: crosshair; }
 body[data-state="scanning"]       #viewport,
-body[data-state="zooming"]        #viewport { cursor: none; }
+body[data-state="zooming"]        #viewport { cursor: none; touch-action: none; }
 body[data-state="inspecting"]     #viewport { cursor: grab; }
 body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
 
@@ -175,20 +175,102 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
 #ig-handle::placeholder { color: #c0c0c0; }
 #ig-handle:focus { border-bottom-color: rgba(30,80,200,0.45); }
 
-#btn-download {
-  background: transparent;
-  border: 1px solid #111;
-  color: #111;
+/* Text presets */
+#text-presets {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  width: 100%;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+#text-presets::-webkit-scrollbar { display: none; }
+
+.text-preset-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #e0e0e0;
   font-family: inherit;
-  font-size: 11px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 7px 22px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: #aaa;
+  padding: 4px 10px;
   cursor: pointer;
-  transition: opacity 0.2s;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.text-preset-btn.active { border-color: #111; color: #111; }
+
+/* Style row */
+#style-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
 }
-#btn-download:hover { opacity: 0.4; }
+
+#color-swatches {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.swatch {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: box-shadow 0.15s;
+}
+.swatch[data-color="black"] { background: #111; }
+.swatch[data-color="blue"]  { background: rgba(20,55,200,0.8); }
+.swatch[data-color="gray"]  { background: #999; }
+.swatch.active { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #555; }
+
+#font-btns { display: flex; gap: 4px; }
+.font-btn {
+  background: none;
+  border: 1px solid #e0e0e0;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #aaa;
+  padding: 3px 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: border-color 0.15s, color 0.15s;
+}
+.font-btn.active { border-color: #111; color: #111; }
+
+/* Share action buttons */
+#share-actions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+#share-actions button {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #ddd;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 7px 4px;
+  cursor: pointer;
+  color: #666;
+  transition: opacity 0.2s;
+}
+#btn-share { border-color: #111 !important; color: #111 !important; }
+#share-actions button:hover { opacity: 0.45; }
+
+#share-status {
+  font-size: 10px;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  min-height: 14px;
+  text-align: center;
+}
 
 #btn-dismiss-share {
   position: absolute;
@@ -202,6 +284,45 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
   padding: 4px;
 }
 #btn-dismiss-share:hover { color: #555; }
+
+/* ============================================================
+   LIKE UI  (world-space, shown only when zoomed in close)
+   ============================================================ */
+.thumb-like-ui {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 7px;
+  letter-spacing: 0.10em;
+  color: #bbb;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s;
+  white-space: nowrap;
+  transform-origin: top center;
+}
+body[data-zoom="close"] .thumb-like-ui {
+  opacity: 1;
+  pointer-events: all;
+}
+.like-count { color: #ccc; }
+.like-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.like-btn:hover { color: rgba(20,55,200,0.6); }
+.like-btn.liked  { color: rgba(20,55,200,0.55); }
 
 /* ============================================================
    NOTIFICATION

@@ -33,9 +33,12 @@ if (process.env.DATABASE_URL) {
       seed        BIGINT           NOT NULL,
       draw_path   JSONB            DEFAULT '[]',
       ig_handle   TEXT,
+      likes       INTEGER          DEFAULT 0,
       created_at  TIMESTAMPTZ      DEFAULT NOW()
     )
-  `).catch(e => console.error('[db] init error:', e.message));
+  `)
+  .then(() => pool.query('ALTER TABLE thumbs ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0'))
+  .catch(e => console.error('[db] init error:', e.message));
 }
 
 function readFallback() {
@@ -64,6 +67,7 @@ function row2obj(r) {
     seed:          +r.seed,
     drawPath:      r.draw_path  || [],
     igHandle:      r.ig_handle  || null,
+    likes:         +r.likes     || 0,
     createdAt:     r.created_at,
   };
 }
@@ -107,6 +111,31 @@ app.post('/api/thumbs', async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('[api] POST /api/thumbs:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/thumbs/:id/like ────────────────────────────────────────────────
+app.post('/api/thumbs/:id/like', async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (pool) {
+      const { rows } = await pool.query(
+        'UPDATE thumbs SET likes = likes + 1 WHERE id = $1 RETURNING likes',
+        [id]
+      );
+      if (!rows.length) return res.status(404).json({ error: 'not found' });
+      return res.json({ likes: rows[0].likes });
+    } else {
+      const all = readFallback();
+      const t = all.find(x => x.id === id);
+      if (!t) return res.status(404).json({ error: 'not found' });
+      t.likes = (t.likes || 0) + 1;
+      writeFallback(all);
+      return res.json({ likes: t.likes });
+    }
+  } catch (e) {
+    console.error('[api] like:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
