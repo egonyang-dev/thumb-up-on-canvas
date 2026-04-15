@@ -1,0 +1,237 @@
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  color: #111111;
+  letter-spacing: 0.05em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ============================================================
+   VIEWPORT / WORLD
+   ============================================================ */
+#viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: default;
+}
+
+#world {
+  position: absolute;
+  width: 3000px;
+  height: 2000px;
+  transform-origin: 0 0;
+}
+
+body[data-state="awaiting_click"] #viewport { cursor: crosshair; }
+body[data-state="scanning"]       #viewport,
+body[data-state="zooming"]        #viewport { cursor: none; }
+body[data-state="inspecting"]     #viewport { cursor: grab; }
+body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
+
+/* ============================================================
+   SCAN OVERLAY
+   ============================================================ */
+#scan-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+#scan-frame {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 110px; height: 150px;
+  transform: translate(-50%, -50%);
+}
+
+.c {
+  position: absolute;
+  width: 14px; height: 14px;
+}
+.c.tl { top: 0;    left: 0;  border-top:    1px solid rgba(30,80,200,0.65); border-left:   1px solid rgba(30,80,200,0.65); }
+.c.tr { top: 0;    right: 0; border-top:    1px solid rgba(30,80,200,0.65); border-right:  1px solid rgba(30,80,200,0.65); }
+.c.bl { bottom: 0; left: 0;  border-bottom: 1px solid rgba(30,80,200,0.65); border-left:   1px solid rgba(30,80,200,0.65); }
+.c.br { bottom: 0; right: 0; border-bottom: 1px solid rgba(30,80,200,0.65); border-right:  1px solid rgba(30,80,200,0.65); }
+
+#draw-canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0.75;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+#scan-line {
+  position: absolute;
+  left: 50%;
+  width: 110px;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(30,80,200,0.4) 20%,
+    rgba(30,80,200,0.7) 50%,
+    rgba(30,80,200,0.4) 80%,
+    transparent
+  );
+}
+
+/* ============================================================
+   INITIAL PROMPT
+   ============================================================ */
+#initial-prompt {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  z-index: 30;
+  pointer-events: all;
+  transition: opacity 0.7s ease;
+}
+
+#initial-prompt.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#prompt-question {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  font-weight: normal;
+}
+
+#btn-like {
+  background: transparent;
+  border: 1px solid #111;
+  color: #111;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 7px 22px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+#btn-like:hover { opacity: 0.4; }
+
+/* ============================================================
+   SHARE / DOWNLOAD PANEL
+   ============================================================ */
+#share-panel {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 26px 32px 30px;
+  background: #fff;
+  border-top: 1px solid #e8e8e8;
+  z-index: 40;
+  pointer-events: all;
+  width: 100%;
+  max-width: 340px;
+}
+
+.share-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #999;
+  text-transform: uppercase;
+}
+
+#ig-handle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #111;
+  padding: 5px 0;
+  outline: none;
+  text-align: center;
+  user-select: text;
+  -webkit-user-select: text;
+}
+#ig-handle::placeholder { color: #c0c0c0; }
+#ig-handle:focus { border-bottom-color: rgba(30,80,200,0.45); }
+
+#btn-download {
+  background: transparent;
+  border: 1px solid #111;
+  color: #111;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 7px 22px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  width: 100%;
+}
+#btn-download:hover { opacity: 0.4; }
+
+#btn-dismiss-share {
+  position: absolute;
+  top: 10px; right: 12px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #bbb;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+#btn-dismiss-share:hover { color: #555; }
+
+/* ============================================================
+   NOTIFICATION
+   ============================================================ */
+#notification {
+  position: fixed;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #666;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+#notification.visible { opacity: 1; }
+
+/* ============================================================
+   THUMB MARKS
+   ============================================================ */
+.thumb-mark {
+  position: absolute;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.hidden { display: none !important; }

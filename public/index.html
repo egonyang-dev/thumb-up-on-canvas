@@ -8,18 +8,20 @@
 </head>
 <body>
 
-  <!-- Zoomable world container -->
+  <!-- Zoomable world -->
   <div id="viewport">
     <div id="world"></div>
   </div>
 
-  <!-- Scan overlay (fixed over viewport) -->
+  <!-- Scan overlay -->
   <div id="scan-overlay" class="hidden">
     <div id="scan-frame">
       <span class="c tl"></span>
       <span class="c tr"></span>
       <span class="c bl"></span>
       <span class="c br"></span>
+      <!-- Drawing canvas lives inside the frame bounds -->
+      <canvas id="draw-canvas" width="110" height="150"></canvas>
     </div>
     <div id="scan-line"></div>
   </div>
@@ -30,7 +32,22 @@
     <button id="btn-like">Like</button>
   </div>
 
-  <!-- Floating notification (instruction / status) -->
+  <!-- Share / download panel -->
+  <div id="share-panel" class="hidden">
+    <p class="share-label">Saved.</p>
+    <input
+      id="ig-handle"
+      type="text"
+      placeholder="@instagram (optional)"
+      maxlength="60"
+      autocomplete="off"
+      spellcheck="false"
+    >
+    <button id="btn-download">Download image</button>
+    <button id="btn-dismiss-share" aria-label="close">×</button>
+  </div>
+
+  <!-- Floating notification -->
   <div id="notification" aria-live="polite"></div>
 
   <script src="script.js"></script>
