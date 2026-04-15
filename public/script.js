@@ -3,8 +3,10 @@
 /* ============================================================
    CONFIGURATION
    ============================================================ */
+const _isMobile = window.innerWidth <= 768;
+
 const CONFIG = {
-  world: { width: 3000, height: 2000 },
+  world: { width: _isMobile ? 2000 : 2400, height: _isMobile ? 1340 : 1600 },
   zoom:  { min: 0.06, max: 12, scanScale: 1.8, wheelStep: 0.10 },
   scan:  { totalDuration: 7000, minDuration: 1500 },
   thumb: { worldWidth: 120, worldHeight: 158, canvasW: 160, canvasH: 210 },
@@ -304,6 +306,17 @@ const ZoomPan = (() => {
   function zoomOut() { resetToOverview(true); return new Promise(r => setTimeout(r, CONFIG.timing.zoomOut)); }
   function enablePan() { panEnabled = true; }
   function setZoomCallback(fn) { zoomCb = fn; }
+  function getState() { return { scale, offsetX, offsetY }; }
+
+  // Smoothly center a world point and set scale
+  function zoomToWorld(wx, wy, targetScale, ms = CONFIG.timing.zoomIn) {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    scale   = Math.max(CONFIG.zoom.min, Math.min(CONFIG.zoom.max, targetScale));
+    offsetX = vw / 2 - wx * scale;
+    offsetY = vh / 2 - wy * scale;
+    apply(ms);
+    return new Promise(r => setTimeout(r, ms));
+  }
 
   function onWheel(e) {
     if (!panEnabled) return;
@@ -330,6 +343,7 @@ const ZoomPan = (() => {
   function onPointerUp() { panActive = false; }
 
   return { init, screenToWorld, zoomToPoint, zoomOut, enablePan, setZoomCallback,
+           getState, zoomToWorld,
            onWheel, onPointerDown, onPointerMove, onPointerUp };
 })();
 
@@ -492,7 +506,46 @@ const LikeFocusSystem = (() => {
     }
   }
 
-  return { register, update };
+  // Hit-test a screen point against registered thumbs (newest first for overlap)
+  function hitTest(screenX, screenY, scale, offsetX, offsetY) {
+    for (let i = registry.length - 1; i >= 0; i--) {
+      const t  = registry[i];
+      const cx = t.wx * scale + offsetX;
+      const cy = t.wy * scale + offsetY;
+      const hw = (t.dW / 2) * scale * 1.2; // 20% tap margin
+      const hh = (t.dH / 2) * scale * 1.2;
+      if (Math.abs(screenX - cx) <= hw && Math.abs(screenY - cy) <= hh) return t.id;
+    }
+    return null;
+  }
+
+  // Immediately set focus to a specific thumb (bypasses debounce)
+  function focusId(id) {
+    clearTimeout(debounceTimer);
+    if (activeId === id) return;
+    if (activeId) {
+      document.querySelectorAll(`.thumb-like-ui[data-thumb-id="${activeId}"]`)
+        .forEach(el => el.classList.remove('focus-active'));
+    }
+    activeId = id;
+    if (activeId) {
+      document.querySelectorAll(`.thumb-like-ui[data-thumb-id="${activeId}"]`)
+        .forEach(el => el.classList.add('focus-active'));
+    }
+  }
+
+  function clearFocus() {
+    clearTimeout(debounceTimer);
+    if (activeId) {
+      document.querySelectorAll(`.thumb-like-ui[data-thumb-id="${activeId}"]`)
+        .forEach(el => el.classList.remove('focus-active'));
+      activeId = null;
+    }
+  }
+
+  function getById(id) { return registry.find(t => t.id === id) || null; }
+
+  return { register, update, hitTest, focusId, clearFocus, getById };
 })();
 
 /* ============================================================
@@ -731,12 +784,15 @@ const Share = (() => {
    APPLICATION
    ============================================================ */
 const App = (() => {
-  let state = 'idle', clickWorld = null, pressing = false, pressStart = 0;
+  let state = 'idle', clickWorld = null, pressing = false, pressStart = 0, tapOrigin = null;
 
   function setState(s) { state = s; document.body.dataset.state = s; }
 
   async function init() {
     const world = document.getElementById('world');
+    // Apply responsive world size (CSS fallback is 2400×1600; JS overrides for mobile)
+    world.style.width  = CONFIG.world.width  + 'px';
+    world.style.height = CONFIG.world.height + 'px';
     ZoomPan.init(world);
     ThumbRenderer.init(world);
     DrawCanvas.init();
@@ -786,7 +842,10 @@ const App = (() => {
   function onPointerDown(e) {
     if      (state === 'awaiting_click') handleFirstClick(e);
     else if (state === 'scanning')       handlePressDown(e);
-    else if (state === 'inspecting')     ZoomPan.onPointerDown(e);
+    else if (state === 'inspecting') {
+      tapOrigin = { x: e.clientX, y: e.clientY, t: Date.now() };
+      ZoomPan.onPointerDown(e);
+    }
   }
   function onPointerMove(e) {
     if (state === 'scanning' && pressing) {
@@ -798,8 +857,39 @@ const App = (() => {
     }
   }
   function onPointerUp(e) {
-    if      (state === 'scanning' && pressing) handlePressUp(e);
-    else if (state === 'inspecting')           ZoomPan.onPointerUp(e);
+    if (state === 'scanning' && pressing) {
+      handlePressUp(e);
+    } else if (state === 'inspecting') {
+      ZoomPan.onPointerUp(e);
+      if (tapOrigin) {
+        const dx = e.clientX - tapOrigin.x, dy = e.clientY - tapOrigin.y;
+        const dt = Date.now() - tapOrigin.t;
+        if (Math.hypot(dx, dy) < 12 && dt < 350) handleTap(e.clientX, e.clientY);
+        tapOrigin = null;
+      }
+    }
+  }
+
+  async function handleTap(screenX, screenY) {
+    const { scale, offsetX, offsetY } = ZoomPan.getState();
+    const hitId = LikeFocusSystem.hitTest(screenX, screenY, scale, offsetX, offsetY);
+
+    if (!hitId) {
+      LikeFocusSystem.clearFocus();
+      return;
+    }
+
+    const thumb = LikeFocusSystem.getById(hitId);
+    if (!thumb) return;
+
+    // Target: thumb fills ~38% of the shorter viewport dimension on screen
+    const vShort      = Math.min(window.innerWidth, window.innerHeight);
+    const targetScale = Math.max(CONFIG.zoom.min, Math.min(CONFIG.zoom.max,
+      (vShort * 0.38) / thumb.dW
+    ));
+
+    await ZoomPan.zoomToWorld(thumb.wx, thumb.wy, targetScale, 700);
+    LikeFocusSystem.focusId(hitId);
   }
 
   async function handleFirstClick(e) {

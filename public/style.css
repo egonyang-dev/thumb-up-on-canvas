@@ -27,8 +27,8 @@ html, body {
 
 #world {
   position: absolute;
-  width: 3000px;
-  height: 2000px;
+  width: 2400px;   /* desktop default; JS overrides to 2000px on mobile */
+  height: 1600px;
   transform-origin: 0 0;
 }
 
