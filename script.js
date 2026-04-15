@@ -450,7 +450,6 @@ const ScanOverlay = (() => {
   let onComplete = null;
 
   function show() {
-    const vw = window.innerWidth;
     const vh = window.innerHeight;
     const overlay = document.getElementById('scan-overlay');
     const line    = document.getElementById('scan-line');
@@ -645,6 +644,8 @@ const App = (() => {
     ScanOverlay.hide();
     Notice.hide();
 
+    if (!data) { setState('scanning'); return; } // safety guard
+
     // Generate the unique thumb mark
     const thumbCanvas = ThumbGenerator.generate(data);
     const imageData   = thumbCanvas.toDataURL('image/png');
@@ -674,14 +675,13 @@ const App = (() => {
     await StorageAdapter.save(thumbData);
     ThumbRenderer.renderOne(thumbData);
 
-    // Zoom out
+    // Zoom out, then enable navigation immediately
     await ZoomPan.zoomOut();
-
-    // Final message
-    await Notice.show('Thumb-up training complete.', CONFIG.timing.completeFade);
-
     ZoomPan.enablePan();
     setState('inspecting');
+
+    // Final message (non-blocking — user can already pan/zoom)
+    Notice.show('Thumb-up training complete.', CONFIG.timing.completeFade);
   }
 
   return { init };
