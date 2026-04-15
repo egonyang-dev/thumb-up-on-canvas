@@ -143,3 +143,92 @@ test('10 — inspecting state allows wheel zoom', async ({ page }) => {
   const after = await world.evaluate(el => el.style.transform);
   expect(before).not.toBe(after);
 });
+
+test('11 — share panel injects 12 text preset buttons', async ({ page }) => {
+  await page.goto('/');
+  await clickLike(page);
+  const vp = page.viewportSize();
+  await clickCanvas(page, vp.width / 2, vp.height / 2);
+  await doFullScan(page);
+  await expect(page.locator('#text-presets')).toBeVisible();
+  const presets = page.locator('.text-preset-btn');
+  await expect(presets).toHaveCount(12);
+  // First preset is active by default
+  await expect(presets.first()).toHaveClass(/active/);
+});
+
+test('12 — clicking a text preset changes the active state', async ({ page }) => {
+  await page.goto('/');
+  await clickLike(page);
+  const vp = page.viewportSize();
+  await clickCanvas(page, vp.width / 2, vp.height / 2);
+  await doFullScan(page);
+  const presets = page.locator('.text-preset-btn');
+  await presets.nth(3).click();
+  await expect(presets.nth(3)).toHaveClass(/active/);
+  await expect(presets.first()).not.toHaveClass(/active/);
+});
+
+test('13 — color swatch selection toggles active', async ({ page }) => {
+  await page.goto('/');
+  await clickLike(page);
+  const vp = page.viewportSize();
+  await clickCanvas(page, vp.width / 2, vp.height / 2);
+  await doFullScan(page);
+  const blueSwatch = page.locator('.swatch[data-color="blue"]');
+  await blueSwatch.click();
+  await expect(blueSwatch).toHaveClass(/active/);
+  await expect(page.locator('.swatch[data-color="black"]')).not.toHaveClass(/active/);
+});
+
+test('14 — font button toggles active', async ({ page }) => {
+  await page.goto('/');
+  await clickLike(page);
+  const vp = page.viewportSize();
+  await clickCanvas(page, vp.width / 2, vp.height / 2);
+  await doFullScan(page);
+  const sansBtn = page.locator('.font-btn[data-font="sans"]');
+  await sansBtn.click();
+  await expect(sansBtn).toHaveClass(/active/);
+  await expect(page.locator('.font-btn[data-font="mono"]')).not.toHaveClass(/active/);
+});
+
+test('15 — share panel has Share, Download, and Copy link buttons', async ({ page }) => {
+  await page.goto('/');
+  await clickLike(page);
+  const vp = page.viewportSize();
+  await clickCanvas(page, vp.width / 2, vp.height / 2);
+  await doFullScan(page);
+  await expect(page.locator('#btn-share')).toBeVisible();
+  await expect(page.locator('#btn-download')).toBeVisible();
+  await expect(page.locator('#btn-copy-link')).toBeVisible();
+});
+
+test('16 — /api/health reports storage mode', async ({ page }) => {
+  const res  = await page.request.get('/api/health');
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  expect(['postgres', 'file-fallback']).toContain(body.storage);
+  expect(typeof body.uptime).toBe('number');
+});
+
+test('17 — like UI shows exactly one focus-active thumb when zoomed in', async ({ page }) => {
+  await page.goto('/');
+  await clickLike(page);
+  const vp = page.viewportSize();
+  await clickCanvas(page, vp.width / 2, vp.height / 2);
+  await doFullScan(page);
+  await page.click('#btn-dismiss-share');
+
+  // Zoom in at viewport center until the thumb's screen-width exceeds the 80px threshold
+  await page.mouse.move(vp.width / 2, vp.height / 2);
+  for (let i = 0; i < 16; i++) {
+    await page.mouse.wheel(0, -200);
+  }
+  // Wait for the 180ms debounce + CSS transition
+  await page.waitForTimeout(450);
+
+  const focused = page.locator('.thumb-like-ui.focus-active');
+  await expect(focused).toHaveCount(1);
+  await expect(focused.locator('.like-btn')).toBeVisible();
+});
