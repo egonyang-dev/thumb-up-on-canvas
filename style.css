@@ -1,80 +1,6 @@
-/* ==========================================================
-   style.css — peijumu zzz
-   Pure CSS + no external dependencies beyond Google Fonts.
-   Sections:
-     1.  Variables & Reset
-     2.  Base & Typography
-     3.  Home: Header
-     4.  Home: Room Scene Background
-     5.  Room Objects — shared base
-     6.  Room Object: Window
-     7.  Room Object: Floor Lamp
-     8.  Room Object: Speaker
-     9.  Room Object: Headphones
-    10.  Room Object: Bed
-    11.  Room Object: Desk
-    12.  Room Object: Chair
-    13.  Room Object: Laptop
-    14.  Room Object: Coffee Cup
-    15.  Room Object: Rug
-    16.  Object Hover, Tooltip & Playing State
-    17.  Mini Player
-    18.  Works Nav Link
-    19.  Works Page — Nav
-    20.  Works Page — Hero & Section Label
-    21.  Works Page — Cards Grid
-    22.  Works Page — Contact
-    23.  Works Page — Services & CTA
-    24.  Works Page — Footer
-    25.  Responsive / Mobile
-   ========================================================== */
-
-
-/* ==========================================================
-   1. VARIABLES & RESET
-   ========================================================== */
-
-:root {
-  /* Background tones */
-  --clr-bg:           #ffffff;
-  --clr-wall:         #f9f7f3;
-  --clr-floor:        #ece8df;
-  --clr-floor-edge:   #e3dfd7;
-
-  /* Text */
-  --clr-text:         #1d1b19;
-  --clr-text-muted:   #8a8780;
-  --clr-text-faint:   #b8b4ae;
-
-  /* Links & accents */
-  --clr-accent:       #706860;
-  --clr-link:         #4a4440;
-
-  /* Object palette */
-  --clr-wood-light:   #dccdb8;
-  --clr-wood-mid:     #cbb898;
-  --clr-wood-dark:    #b8a480;
-  --clr-linen:        #ede8e0;
-  --clr-linen-dark:   #d8d0c4;
-  --clr-ceramic:      #ede4d6;
-  --clr-charcoal:     #2d2b28;
-  --clr-charcoal-mid: #44423e;
-  --clr-sky-light:    #ccdff0;
-  --clr-sky-mid:      #d8eaf8;
-
-  /* Player */
-  --clr-player-bg:    rgba(255, 255, 255, 0.94);
-  --clr-player-border:rgba(0, 0, 0, 0.08);
-
-  /* Fonts */
-  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --font-mono:  'DM Mono', 'Courier New', monospace;
-  --font-sans:  'DM Sans', system-ui, -apple-system, sans-serif;
-
-  /* Timing */
-  --ease-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
+/* ============================================================
+   BASE
+   ============================================================ */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -84,1583 +10,195 @@
 html, body {
   width: 100%;
   height: 100%;
-  background: var(--clr-bg);
-  color: var(--clr-text);
-  font-family: var(--font-sans);
-  font-weight: 300;
-  -webkit-font-smoothing: antialiased;
-}
-
-
-/* ==========================================================
-   2. BASE & TYPOGRAPHY
-   ========================================================== */
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  border: none;
-  background: none;
-  cursor: pointer;
-  font: inherit;
-}
-
-.page-home {
-  overflow: hidden;     /* no scroll on home — room fills viewport */
-}
-
-.page-works {
-  overflow-y: auto;
-  min-height: 100vh;
-}
-
-
-/* ==========================================================
-   3. HOME: HEADER
-   Fixed top-left — site name and tagline overlay the room.
-   ========================================================== */
-
-.site-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 20;
-  padding: 28px 36px;
-  pointer-events: none;   /* only the link inside is interactive */
-}
-
-.site-name {
-  display: block;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 300;
-  font-size: clamp(1.4rem, 2.2vw, 2rem);
-  letter-spacing: 0.04em;
-  color: var(--clr-text);
-  pointer-events: all;
-  line-height: 1;
-}
-
-.site-name:hover {
-  color: var(--clr-accent);
-}
-
-.site-tagline {
-  margin-top: 6px;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 300;
-  letter-spacing: 0.12em;
-  color: var(--clr-text-muted);
-  text-transform: lowercase;
-}
-
-
-/* ==========================================================
-   4. HOME: ROOM SCENE BACKGROUND
-   The room is a full-viewport fixed canvas.
-   Top ~42% = wall, bottom ~58% = floor.
-   ========================================================== */
-
-.room-scene {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
   overflow: hidden;
-}
-
-/* Wall area */
-.room-wall {
-  position: absolute;
-  inset: 0 0 58% 0;
-  background: var(--clr-wall);
-}
-
-/* Floor area */
-.room-floor {
-  position: absolute;
-  inset: 42% 0 0 0;
-  background: linear-gradient(180deg, var(--clr-floor) 0%, var(--clr-floor-edge) 100%);
-}
-
-/* Subtle baseboard line */
-.room-divider {
-  position: absolute;
-  top: 42%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(0,0,0,0.06) 15%,
-    rgba(0,0,0,0.09) 50%,
-    rgba(0,0,0,0.06) 85%,
-    transparent 100%
-  );
-}
-
-/* Subtle floor plank lines */
-.room-floor::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: repeating-linear-gradient(
-    transparent,
-    transparent 59px,
-    rgba(0,0,0,0.025) 59px,
-    rgba(0,0,0,0.025) 60px
-  );
-}
-
-
-/* ==========================================================
-   5. ROOM OBJECTS — SHARED BASE
-   All objects are position:absolute inside .room-scene.
-   ========================================================== */
-
-.room-object {
-  position: absolute;
-  cursor: pointer;
+  background: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  color: #111111;
+  letter-spacing: 0.05em;
   user-select: none;
-  /* Each object sets its own left/top/width/height below */
+  -webkit-user-select: none;
 }
 
-/* Hover lift for all objects */
-.room-object:hover,
-.room-object:focus-visible {
-  outline: none;
-  z-index: 5;
-}
-
-.room-object:focus-visible .obj-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-
-/* ==========================================================
-   6. ROOM OBJECT: WINDOW
-   Position: upper-left wall area
-   ========================================================== */
-
-.obj-window {
-  left: 7%;
-  top: 6%;
-  width: 108px;
-  height: 138px;
-  transition: transform 0.35s var(--ease-soft), filter 0.35s;
-}
-
-.obj-window:hover {
-  transform: scale(1.04);
-  filter: brightness(1.04);
-}
-
-.win-frame {
-  position: absolute;
+/* ============================================================
+   VIEWPORT / WORLD
+   ============================================================ */
+#viewport {
+  position: fixed;
   inset: 0;
-  background: linear-gradient(175deg, var(--clr-sky-light) 0%, var(--clr-sky-mid) 60%, #c8dff0 100%);
-  border: 2.5px solid #9ab2c4;
-  border-radius: 3px 3px 0 0;
-  box-shadow:
-    inset 0 0 28px rgba(160, 210, 255, 0.25),
-    3px 4px 12px rgba(0,0,0,0.1);
   overflow: hidden;
+  cursor: crosshair;
 }
 
-/* Vertical window bar */
-.win-bar-v {
+#world {
   position: absolute;
-  left: 50%;
-  top: 0; bottom: 0;
-  width: 2.5px;
-  transform: translateX(-50%);
-  background: #8eaabf;
+  width: 3000px;
+  height: 2000px;
+  transform-origin: 0 0;
 }
 
-/* Horizontal window bar */
-.win-bar-h {
-  position: absolute;
-  top: 46%;
-  left: 0; right: 0;
-  height: 2.5px;
-  background: #8eaabf;
+/* While in awaiting_click state, show crosshair */
+body[data-state="awaiting_click"] #viewport {
+  cursor: crosshair;
 }
 
-/* Soft light effect on glass */
-.win-glow {
-  position: absolute;
+body[data-state="scanning"] #viewport,
+body[data-state="zooming"] #viewport {
+  cursor: none;
+}
+
+body[data-state="inspecting"] #viewport {
+  cursor: grab;
+}
+
+body[data-state="inspecting"] #viewport:active {
+  cursor: grabbing;
+}
+
+/* ============================================================
+   SCAN OVERLAY
+   ============================================================ */
+#scan-overlay {
+  position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, transparent 60%);
   pointer-events: none;
+  z-index: 20;
 }
 
-/* Curtain left */
-.win-curtain-l {
+#scan-frame {
   position: absolute;
-  top: -4px;
-  left: -14px;
-  width: 18px;
-  height: 148px;
-  background: linear-gradient(90deg, #e0dcd4 0%, #d0ccc4 100%);
-  border-radius: 2px;
-  box-shadow: 2px 0 6px rgba(0,0,0,0.07);
-}
-
-/* Curtain right */
-.win-curtain-r {
-  position: absolute;
-  top: -4px;
-  right: -14px;
-  width: 18px;
-  height: 148px;
-  background: linear-gradient(270deg, #e0dcd4 0%, #d0ccc4 100%);
-  border-radius: 2px;
-  box-shadow: -2px 0 6px rgba(0,0,0,0.07);
-}
-
-
-/* ==========================================================
-   7. ROOM OBJECT: FLOOR LAMP
-   Position: left side, spans wall/floor boundary
-   ========================================================== */
-
-.obj-lamp {
-  left: 3.5%;
-  top: 28%;
-  width: 60px;
-  height: 210px;
-  transition: transform 0.35s var(--ease-soft);
-}
-
-.obj-lamp:hover {
-  transform: scale(1.04);
-}
-
-/* Lamp shade — inverted trapezoid */
-.lamp-shade {
-  position: absolute;
-  top: 0;
   left: 50%;
-  transform: translateX(-50%);
-  width: 54px;
-  height: 40px;
-  background: linear-gradient(180deg, #e8d4a0 0%, #f5e8c4 100%);
-  clip-path: polygon(14% 0%, 86% 0%, 100% 100%, 0% 100%);
-  box-shadow: 0 4px 10px rgba(200,160,60,0.12);
-}
-
-/* Bulb glow inside shade */
-.lamp-bulb {
-  position: absolute;
-  top: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
-  background: #fff8e8;
-  border-radius: 50%;
-  box-shadow: 0 0 12px 8px rgba(255, 240, 160, 0.25);
-}
-
-/* Pole */
-.lamp-pole {
-  position: absolute;
-  top: 38px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 140px;
-  background: linear-gradient(90deg, #c0b8a8 0%, #a8a090 100%);
-  border-radius: 2px;
-}
-
-/* Base */
-.lamp-base {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 44px;
-  height: 12px;
-  background: linear-gradient(180deg, #b0a898 0%, #9a9288 100%);
-  border-radius: 3px 3px 6px 6px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.12);
-}
-
-/* Floor glow when lamp is "on" (playing state) */
-.lamp-glow {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 30px;
-  background: radial-gradient(ellipse, rgba(255,240,160,0.18) 0%, transparent 75%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s;
-}
-
-.room-object.is-playing .lamp-glow {
-  opacity: 1;
-  animation: lampPulse 3s ease-in-out infinite;
-}
-
-@keyframes lampPulse {
-  0%, 100% { opacity: 0.6; }
-  50%       { opacity: 1; }
-}
-
-
-/* ==========================================================
-   8. ROOM OBJECT: SPEAKER
-   Position: left-center, on floor against wall
-   ========================================================== */
-
-.obj-speaker {
-  left: 18%;
   top: 50%;
-  width: 68px;
-  height: 88px;
-  transition: transform 0.35s var(--ease-soft);
+  width: 110px;
+  height: 150px;
+  transform: translate(-50%, -50%);
 }
 
-.obj-speaker:hover {
-  transform: scale(1.05) translateY(-3px);
-}
-
-.spk-body {
+/* Corner brackets */
+.c {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, #3e3c38 0%, #2c2a26 60%, #28261e 100%);
-  border-radius: 5px;
-  box-shadow:
-    4px 6px 16px rgba(0,0,0,0.22),
-    inset 0 1px 0 rgba(255,255,255,0.06);
-  overflow: hidden;
-}
-
-/* Grille — 3×3 grid of dots */
-.spk-grille {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 40px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.spk-grille span {
-  display: block;
-  width: 7px;
-  height: 7px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 50%;
-}
-
-/* Main cone / driver circle */
-.spk-cone {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #4a4844, #1c1a18);
-  box-shadow:
-    inset 0 2px 6px rgba(0,0,0,0.5),
-    0 0 0 3px rgba(255,255,255,0.04);
-}
-
-/* Volume knob */
-.spk-dial {
-  position: absolute;
-  bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, #5a5850, #3a3830);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px rgba(255,255,255,0.06);
 }
 
-/* Shadow under speaker */
-.spk-shadow {
+.c.tl {
+  top: 0; left: 0;
+  border-top: 1px solid rgba(30, 80, 200, 0.65);
+  border-left: 1px solid rgba(30, 80, 200, 0.65);
+}
+.c.tr {
+  top: 0; right: 0;
+  border-top: 1px solid rgba(30, 80, 200, 0.65);
+  border-right: 1px solid rgba(30, 80, 200, 0.65);
+}
+.c.bl {
+  bottom: 0; left: 0;
+  border-bottom: 1px solid rgba(30, 80, 200, 0.65);
+  border-left: 1px solid rgba(30, 80, 200, 0.65);
+}
+.c.br {
+  bottom: 0; right: 0;
+  border-bottom: 1px solid rgba(30, 80, 200, 0.65);
+  border-right: 1px solid rgba(30, 80, 200, 0.65);
+}
+
+#scan-line {
   position: absolute;
-  bottom: -6px;
   left: 50%;
+  width: 110px;
+  height: 1px;
   transform: translateX(-50%);
-  width: 54px;
-  height: 10px;
-  background: radial-gradient(ellipse, rgba(0,0,0,0.15) 0%, transparent 75%);
-}
-
-
-/* ==========================================================
-   9. ROOM OBJECT: HEADPHONES
-   Position: upper-center, hung on wall
-   ========================================================== */
-
-.obj-headphones {
-  left: 44%;
-  top: 5%;
-  width: 84px;
-  height: 74px;
-  transition: transform 0.35s var(--ease-soft);
-}
-
-.obj-headphones:hover {
-  transform: translateY(-5px) rotate(-3deg);
-}
-
-.hp-svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(3px 6px 8px rgba(0,0,0,0.15));
-}
-
-
-/* ==========================================================
-   10. ROOM OBJECT: BED
-    Position: right side, against wall
-   ========================================================== */
-
-.obj-bed {
-  right: 4%;
-  top: 8%;
-  width: 230px;
-  height: 150px;
-  transition: transform 0.35s var(--ease-soft);
-}
-
-.obj-bed:hover {
-  transform: scale(1.02) translateY(-2px);
-}
-
-/* Headboard */
-.bed-headboard {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 42px;
-  background: linear-gradient(180deg, #cdc5bb 0%, #bdb5ab 100%);
-  border-radius: 5px 5px 0 0;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-}
-
-.headboard-pad {
-  position: absolute;
-  inset: 6px 10px;
-  background: linear-gradient(160deg, #d8d0c8 0%, #c8c0b8 100%);
-  border-radius: 3px;
-}
-
-/* Mattress frame */
-.bed-frame {
-  position: absolute;
-  top: 40px;
-  left: 0;
-  right: 0;
-  bottom: 14px;
-  background: var(--clr-linen);
-  border-left: 8px solid #c8c0b4;
-  border-right: 8px solid #c0b8ac;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  overflow: hidden;
-}
-
-/* Pillows */
-.bed-pillow {
-  position: absolute;
-  top: 8px;
-  width: 84px;
-  height: 38px;
-  background: linear-gradient(160deg, #f8f4f0 0%, #ece8e4 100%);
-  border-radius: 8px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
-}
-
-.bed-pillow.pl { left: 8px; }
-.bed-pillow.pr { right: 8px; }
-
-/* Blanket */
-.bed-blanket {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 68px;
-  background: linear-gradient(180deg, #c4bdb4 0%, #b8b0a8 100%);
-  border-radius: 3px 3px 0 0;
-}
-
-.blanket-fold {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 14px;
-  background: linear-gradient(180deg, #d0c8bf 0%, transparent 100%);
-  border-radius: 3px;
-}
-
-/* Bed legs */
-.bed-leg-l, .bed-leg-r {
-  position: absolute;
-  bottom: 0;
-  width: 12px;
-  height: 18px;
-  background: linear-gradient(90deg, #b8b0a4, #a8a094);
-  border-radius: 0 0 3px 3px;
-}
-
-.bed-leg-l { left: 14px; }
-.bed-leg-r { right: 14px; }
-
-
-/* ==========================================================
-   11. ROOM OBJECT: DESK
-   Position: center-right area, on floor
-   ========================================================== */
-
-.obj-desk {
-  left: 54%;
-  top: 50%;
-  width: 220px;
-  height: 110px;
-  transition: transform 0.35s var(--ease-soft);
-}
-
-.obj-desk:hover {
-  transform: translateY(-3px);
-}
-
-/* Top surface */
-.desk-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 16px;
-  background: linear-gradient(180deg, var(--clr-wood-light) 0%, var(--clr-wood-mid) 100%);
-  border-radius: 4px 4px 0 0;
-  box-shadow:
-    0 -1px 0 rgba(255,255,255,0.4),
-    0 3px 8px rgba(0,0,0,0.13);
-}
-
-/* Front panel — 3D box illusion */
-.desk-front {
-  position: absolute;
-  top: 14px;
-  left: 0;
-  right: 0;
-  height: 12px;
-  background: linear-gradient(180deg, var(--clr-wood-mid) 0%, var(--clr-wood-dark) 100%);
-}
-
-/* Legs */
-.desk-leg {
-  position: absolute;
-  top: 26px;
-  bottom: 0;
-  width: 16px;
-  background: linear-gradient(90deg, var(--clr-wood-light) 0%, var(--clr-wood-mid) 50%, var(--clr-wood-dark) 100%);
-  border-radius: 0 0 4px 4px;
-  box-shadow: 2px 3px 6px rgba(0,0,0,0.1);
-}
-
-.desk-leg.dl { left: 14px; }
-.desk-leg.dr { right: 14px; }
-
-
-/* ==========================================================
-   12. ROOM OBJECT: CHAIR
-   Position: in front of desk, slightly to the left
-   ========================================================== */
-
-.obj-chair {
-  left: 46%;
-  top: 62%;
-  width: 74px;
-  height: 96px;
-  transition: transform 0.35s var(--ease-soft);
-}
-
-.obj-chair:hover {
-  transform: translateX(3px) translateY(-3px);
-}
-
-/* Chair back */
-.ch-back {
-  position: absolute;
-  top: 0;
-  left: 12px;
-  right: 12px;
-  height: 52px;
-  background: linear-gradient(160deg, var(--clr-wood-light) 0%, var(--clr-wood-mid) 100%);
-  border-radius: 5px 5px 2px 2px;
-  box-shadow: 2px 3px 8px rgba(0,0,0,0.12);
-}
-
-.ch-back-top {
-  position: absolute;
-  inset: 6px 6px auto;
-  height: 18px;
-  background: linear-gradient(160deg, #e0d0b8, #d0c0a8);
-  border-radius: 3px;
-}
-
-/* Seat */
-.ch-seat {
-  position: absolute;
-  top: 46px;
-  left: 0;
-  right: 0;
-  height: 18px;
-  background: linear-gradient(180deg, var(--clr-wood-light) 0%, var(--clr-wood-mid) 100%);
-  border-radius: 3px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-}
-
-/* Chair legs */
-.ch-leg {
-  position: absolute;
-  top: 60px;
-  width: 7px;
-  height: 36px;
-  background: linear-gradient(180deg, var(--clr-wood-mid), var(--clr-wood-dark));
-  border-radius: 0 0 3px 3px;
-}
-
-.ch-leg.fl { left: 8px; }
-.ch-leg.fr { right: 8px; }
-.ch-leg.bl { left: 18px; opacity: 0.7; transform: skewX(-4deg); }
-.ch-leg.br { right: 18px; opacity: 0.7; transform: skewX(4deg); }
-
-
-/* ==========================================================
-   13. ROOM OBJECT: LAPTOP
-   Position: on the desk surface
-   ========================================================== */
-
-.obj-laptop {
-  left: 57%;
-  top: 40%;
-  width: 116px;
-  height: 82px;
-  transition: transform 0.35s var(--ease-soft);
-}
-
-.obj-laptop:hover {
-  transform: translateY(-4px);
-}
-
-/* Screen lid */
-.lp-lid {
-  position: absolute;
-  top: 0;
-  left: 8px;
-  right: 0;
-  height: 56px;
-  background: linear-gradient(160deg, #282420 0%, #1e1c18 100%);
-  border-radius: 5px 5px 1px 1px;
-  box-shadow: 3px 4px 12px rgba(0,0,0,0.25);
-  transform-origin: bottom center;
-  transform: perspective(300px) rotateX(-8deg);
-}
-
-/* Screen surface */
-.lp-screen {
-  position: absolute;
-  inset: 5px 6px;
-  background: linear-gradient(135deg, #141e32 0%, #0c1420 50%, #1a2438 100%);
-  border-radius: 3px;
-}
-
-/* Camera dot */
-.lp-camera {
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  background: #302c28;
-  border-radius: 50%;
-}
-
-/* Hinge line */
-.lp-hinge {
-  position: absolute;
-  top: 54px;
-  left: 6px;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #3c3a36, #2e2c28);
-  border-radius: 1px;
-}
-
-/* Base / keyboard tray */
-.lp-base {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 4px;
-  height: 26px;
-  background: linear-gradient(180deg, #2e2c28 0%, #242220 100%);
-  border-radius: 1px 1px 4px 4px;
-  box-shadow: 3px 5px 10px rgba(0,0,0,0.2);
-}
-
-/* Keyboard texture */
-.lp-keyboard {
-  position: absolute;
-  top: 4px;
-  left: 8px;
-  right: 12px;
-  height: 12px;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(255,255,255,0.04) 0px,
-    rgba(255,255,255,0.04) 5px,
-    transparent 5px,
-    transparent 7px
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(30, 80, 200, 0.45) 20%,
+    rgba(30, 80, 200, 0.65) 50%,
+    rgba(30, 80, 200, 0.45) 80%,
+    transparent
   );
-  border-radius: 1px;
+  /* top is set via JS */
 }
 
-/* Trackpad */
-.lp-trackpad {
-  position: absolute;
-  bottom: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 8px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 2px;
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
-/* Ambient screen glow when playing */
-.room-object.obj-laptop.is-playing .lp-screen {
-  background: linear-gradient(135deg, #1a3050 0%, #0e2040 50%, #1e2c48 100%);
-  box-shadow: 0 0 16px 4px rgba(80,140,220,0.12);
-}
-
-
-/* ==========================================================
-   14. ROOM OBJECT: COFFEE CUP
-   Position: on the desk, right side
-   ========================================================== */
-
-.obj-cup {
-  left: 70%;
-  top: 50%;
-  width: 46px;
-  height: 64px;
-  transition: transform 0.35s var(--ease-soft);
-}
-
-.obj-cup:hover {
-  transform: scale(1.06) translateY(-4px);
-}
-
-/* Steam wisps */
-.cup-steam {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 4px;
-}
-
-.cup-steam i {
-  display: block;
-  width: 2.5px;
-  height: 10px;
-  background: rgba(160,155,150,0.35);
-  border-radius: 4px;
-  animation: steamRise 2.4s ease-in-out infinite;
-}
-
-.cup-steam i:nth-child(1) { animation-delay: 0s; }
-.cup-steam i:nth-child(2) { animation-delay: 0.6s; height: 14px; }
-.cup-steam i:nth-child(3) { animation-delay: 1.2s; }
-
-@keyframes steamRise {
-  0%   { opacity: 0;    transform: translateY(0) scaleX(1); }
-  40%  { opacity: 0.7;  transform: translateY(-8px) scaleX(1.3); }
-  100% { opacity: 0;    transform: translateY(-18px) scaleX(0.8); }
-}
-
-/* Cup body */
-.cup-body {
-  position: absolute;
-  top: 12px;
-  left: 4px;
-  width: 34px;
-  height: 36px;
-  background: linear-gradient(160deg, #f0e4d6 0%, #e4d4c4 60%, #d8c8b8 100%);
-  border-radius: 3px 3px 8px 8px;
-  box-shadow: 2px 4px 8px rgba(0,0,0,0.12);
-}
-
-/* Rim highlight */
-.cup-rim {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 5px;
-  background: linear-gradient(180deg, #f4e8da 0%, #e8dccf 100%);
-  border-radius: 3px 3px 0 0;
-}
-
-/* Liquid inside */
-.cup-liquid {
-  position: absolute;
-  top: 6px;
-  left: 4px;
-  right: 4px;
-  height: 8px;
-  background: linear-gradient(180deg, #8c6040 0%, #7a5030 100%);
-  border-radius: 2px;
-  opacity: 0.7;
-}
-
-/* Handle — D-shape */
-.cup-handle {
-  position: absolute;
-  top: 6px;
-  right: -10px;
-  width: 12px;
-  height: 16px;
-  border: 3px solid #d8c8b8;
-  border-left: none;
-  border-radius: 0 50% 50% 0;
-}
-
-/* Saucer */
-.cup-saucer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 8px;
-  background: linear-gradient(180deg, #e8dcd0 0%, #dcd0c4 100%);
-  border-radius: 50%;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-}
-
-
-/* ==========================================================
-   15. ROOM OBJECT: RUG
-   Position: center floor — perspective-tilted flat
-   ========================================================== */
-
-.obj-rug {
-  left: 28%;
-  top: 64%;
-  width: 200px;
-  height: 108px;
-  transform: perspective(500px) rotateX(38deg);
-  transform-origin: 50% 0%;
-  transition: transform 0.35s var(--ease-soft), filter 0.35s;
-}
-
-.obj-rug:hover {
-  transform: perspective(500px) rotateX(34deg) scale(1.03);
-  filter: brightness(1.05);
-}
-
-.obj-rug > div:not(.obj-tooltip) {
-  position: absolute;
-}
-
-/* Rug body */
-.obj-rug::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, #cdc9c0 0%, #c4c0b8 50%, #c8c4bc 100%);
-  border-radius: 14px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-}
-
-/* Rug inner border */
-.rug-inner {
-  position: absolute;
-  inset: 10px;
-  border: 2px solid rgba(180,175,168,0.6);
-  border-radius: 8px;
-  pointer-events: none;
-}
-
-/* Fringe top */
-.rug-fringe-t {
-  position: absolute;
-  top: -6px;
-  left: 14px;
-  right: 14px;
-  height: 8px;
-  background: repeating-linear-gradient(
-    90deg,
-    #c0bcb4 0px, #c0bcb4 3px,
-    transparent 3px, transparent 7px
-  );
-}
-
-/* Fringe bottom */
-.rug-fringe-b {
-  position: absolute;
-  bottom: -6px;
-  left: 14px;
-  right: 14px;
-  height: 8px;
-  background: repeating-linear-gradient(
-    90deg,
-    #c0bcb4 0px, #c0bcb4 3px,
-    transparent 3px, transparent 7px
-  );
-}
-
-
-/* ==========================================================
-   16. OBJECT HOVER, TOOLTIP & PLAYING STATE
-   ========================================================== */
-
-/* Tooltip label */
-.obj-tooltip {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
-  color: var(--clr-text-muted);
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(6px);
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid rgba(0,0,0,0.06);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s, transform 0.2s;
-  z-index: 10;
-}
-
-.room-object:hover .obj-tooltip {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* Rug tooltip override — appears below since rug is rotated */
-.obj-rug .obj-tooltip {
-  bottom: auto;
-  top: calc(100% + 10px);
-}
-
-/* "is-playing" state — soft pulse outline */
-.room-object.is-playing::after {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 12px;
-  border: 1.5px solid rgba(140,130,118,0.35);
-  animation: playingPulse 2.4s ease-in-out infinite;
-  pointer-events: none;
-  z-index: -1;
-}
-
-@keyframes playingPulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%       { opacity: 0.9; transform: scale(1.04); }
-}
-
-
-/* ==========================================================
-   17. MINI PLAYER
-   Fixed bottom-right, always visible.
-   ========================================================== */
-
-.mini-player {
+/* ============================================================
+   INITIAL PROMPT
+   ============================================================ */
+#initial-prompt {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  z-index: 20;
-  width: 240px;
-  background: var(--clr-player-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--clr-player-border);
-  border-radius: 12px;
-  padding: 14px 16px 10px;
-  box-shadow:
-    0 4px 24px rgba(0,0,0,0.08),
-    0 1px 4px rgba(0,0,0,0.05);
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.4s, transform 0.4s;
-  pointer-events: none;
-}
-
-/* Player becomes visible once something has played */
-.mini-player.visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: all;
-}
-
-.player-info {
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-bottom: 10px;
-}
-
-.player-type {
-  font-family: var(--font-mono);
-  font-size: 0.55rem;
-  font-weight: 300;
-  letter-spacing: 0.14em;
-  color: var(--clr-text-faint);
-  text-transform: uppercase;
-  line-height: 1;
-}
-
-.player-title {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 0.95rem;
-  font-weight: 300;
-  color: var(--clr-text);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.player-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.player-btn,
-.player-stop-btn {
-  display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  color: var(--clr-text);
-  background: rgba(0,0,0,0.04);
-  transition: background 0.2s, transform 0.15s;
+  gap: 28px;
+  z-index: 30;
+  pointer-events: all;
+  transition: opacity 0.7s ease;
 }
 
-.player-btn:hover,
-.player-stop-btn:hover {
-  background: rgba(0,0,0,0.08);
+#initial-prompt.fade-out {
+  opacity: 0;
+  pointer-events: none;
 }
 
-.player-btn:active,
-.player-stop-btn:active {
-  transform: scale(0.93);
+#prompt-question {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: #111;
+  font-weight: normal;
 }
 
-.ico {
-  display: block;
-  width: 12px;
-  height: 12px;
+#btn-like {
+  background: transparent;
+  border: 1px solid #111;
+  color: #111;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 7px 22px;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
-/* Show play icon by default, hide pause */
-.ico-pause { display: none; }
-
-/* When playing, swap icons */
-.mini-player.is-playing .ico-play  { display: none; }
-.mini-player.is-playing .ico-pause { display: block; }
-
-/* Progress bar */
-.player-bar {
-  height: 2px;
-  background: rgba(0,0,0,0.08);
-  border-radius: 2px;
-  overflow: hidden;
+#btn-like:hover {
+  opacity: 0.45;
 }
 
-.player-progress {
-  height: 100%;
-  width: 0%;
-  background: var(--clr-accent);
-  border-radius: 2px;
-  transition: width 0.5s linear;
-}
-
-
-/* ==========================================================
-   18. WORKS NAV LINK
-   Fixed bottom-right, above player.
-   ========================================================== */
-
-.works-nav-link {
+/* ============================================================
+   NOTIFICATION
+   ============================================================ */
+#notification {
   position: fixed;
-  bottom: 124px;
-  right: 28px;
-  z-index: 20;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 300;
-  letter-spacing: 0.14em;
-  color: var(--clr-text-muted);
-  text-transform: lowercase;
-  padding: 8px 14px;
-  background: rgba(255,255,255,0.82);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 20px;
-  transition: color 0.2s, background 0.2s, transform 0.2s;
-}
-
-.works-nav-link:hover {
-  color: var(--clr-text);
-  background: rgba(255,255,255,0.96);
-  transform: translateX(-3px);
-}
-
-
-/* ==========================================================
-   19. WORKS PAGE — TOP NAV
-   ========================================================== */
-
-.top-nav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 48px;
-  background: rgba(255,255,255,0.9);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-
-.back-link {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
-  color: var(--clr-text-muted);
-  transition: color 0.2s;
-}
-
-.back-link:hover {
-  color: var(--clr-text);
-}
-
-.nav-site-name {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 300;
-  font-size: 1.05rem;
-  color: var(--clr-text-muted);
-}
-
-
-/* ==========================================================
-   20. WORKS PAGE — HERO & SECTION LABEL
-   ========================================================== */
-
-.works-hero {
-  padding: 80px 48px 60px;
-  max-width: 680px;
-}
-
-.works-name {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 300;
-  font-size: clamp(2.8rem, 6vw, 5rem);
-  letter-spacing: -0.01em;
-  line-height: 1;
-  color: var(--clr-text);
-  margin-bottom: 24px;
-}
-
-.works-bio {
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: 0.95rem;
-  line-height: 1.9;
-  color: var(--clr-text-muted);
-}
-
-/* Shared section label */
-.section-label {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--clr-text-faint);
-  margin-bottom: 36px;
-}
-
-
-/* ==========================================================
-   21. WORKS PAGE — CARDS GRID
-   ========================================================== */
-
-.works-section {
-  padding: 0 48px 80px;
-}
-
-.works-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  border: 1px solid rgba(0,0,0,0.07);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.work-card {
-  padding: 28px 28px 32px;
-  background: var(--clr-bg);
-  border-right: 1px solid rgba(0,0,0,0.07);
-  border-bottom: 1px solid rgba(0,0,0,0.07);
-  transition: background 0.25s;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.work-card:hover {
-  background: #faf8f5;
-}
-
-.card-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.card-year {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
-  color: var(--clr-text-faint);
-}
-
-.card-type {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 300;
-  letter-spacing: 0.08em;
-  color: var(--clr-text-muted);
-  padding: 3px 8px;
-  border: 1px solid rgba(0,0,0,0.1);
-  border-radius: 20px;
-}
-
-.card-title {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 300;
-  font-size: 1.3rem;
-  line-height: 1.2;
-  color: var(--clr-text);
-}
-
-.card-desc {
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: 0.85rem;
-  line-height: 1.75;
-  color: var(--clr-text-muted);
-  flex-grow: 1;
-}
-
-.card-link {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
-  color: var(--clr-link);
-  margin-top: 4px;
-  transition: color 0.2s, letter-spacing 0.2s;
-}
-
-.card-link:hover {
-  color: var(--clr-text);
-  letter-spacing: 0.16em;
-}
-
-
-/* ==========================================================
-   22. WORKS PAGE — CONTACT SECTION
-   ========================================================== */
-
-.contact-section {
-  padding: 0 48px 80px;
-  max-width: 600px;
-}
-
-.contact-links {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border-top: 1px solid rgba(0,0,0,0.07);
-}
-
-.contact-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 0;
-  border-bottom: 1px solid rgba(0,0,0,0.07);
-  transition: padding-left 0.2s;
-}
-
-.contact-item:hover {
-  padding-left: 8px;
-}
-
-.contact-platform {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 300;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #666;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--clr-text-faint);
-  min-width: 100px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
-.contact-handle {
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: 0.9rem;
-  color: var(--clr-text-muted);
-  transition: color 0.2s;
+#notification.visible {
+  opacity: 1;
 }
 
-.contact-item:hover .contact-handle {
-  color: var(--clr-text);
+/* ============================================================
+   THUMB MARKS
+   ============================================================ */
+.thumb-mark {
+  position: absolute;
+  pointer-events: none;
+  transform-origin: center center;
+  /* filter applied per element via JS */
 }
 
-
-/* ==========================================================
-   23. WORKS PAGE — SERVICES & CTA
-   ========================================================== */
-
-.services-section {
-  padding: 0 48px 80px;
-  max-width: 600px;
-}
-
-.services-intro {
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: 0.9rem;
-  line-height: 1.8;
-  color: var(--clr-text-muted);
-  margin-bottom: 28px;
-}
-
-.services-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border-top: 1px solid rgba(0,0,0,0.06);
-  margin-bottom: 44px;
-}
-
-.services-list li {
-  padding: 13px 0;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: 0.88rem;
-  color: var(--clr-text);
-}
-
-.services-list li .zh {
-  font-family: var(--font-sans);
-  font-size: 0.78rem;
-  color: var(--clr-text-muted);
-}
-
-.cta-group {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-/* Primary form button */
-.btn-form {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  color: var(--clr-bg);
-  background: var(--clr-text);
-  padding: 13px 24px;
-  border-radius: 4px;
-  transition: background 0.2s, transform 0.15s;
-}
-
-.btn-form:hover {
-  background: var(--clr-charcoal-mid);
-  transform: translateY(-1px);
-}
-
-/* Secondary email link */
-.btn-email {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
-  color: var(--clr-text-muted);
-  transition: color 0.2s;
-}
-
-.btn-email:hover {
-  color: var(--clr-text);
-}
-
-
-/* ==========================================================
-   24. WORKS PAGE — FOOTER
-   ========================================================== */
-
-.site-footer {
-  padding: 28px 48px;
-  border-top: 1px solid rgba(0,0,0,0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
-  color: var(--clr-text-faint);
-}
-
-.footer-back {
-  color: var(--clr-text-faint);
-  transition: color 0.2s;
-}
-
-.footer-back:hover {
-  color: var(--clr-text-muted);
-}
-
-
-/* ==========================================================
-   25. RESPONSIVE / MOBILE
-   ========================================================== */
-
-/* ---- Tablet (≤ 1024px) ---- */
-@media (max-width: 1024px) {
-  .works-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .obj-bed    { right: 2%; }
-  .obj-desk   { left: 52%; }
-  .obj-laptop { left: 55%; }
-}
-
-/* ---- Mobile (≤ 768px) ---- */
-@media (max-width: 768px) {
-
-  /* Scale down the entire room scene */
-  .room-scene {
-    transform-origin: top left;
-  }
-
-  /* Reduce object sizes on mobile */
-  .obj-window   { transform: scale(0.75); transform-origin: top left; }
-  .obj-lamp     { transform: scale(0.8);  transform-origin: top left; }
-  .obj-speaker  { transform: scale(0.8);  transform-origin: top left; }
-  .obj-headphones { transform: scale(0.85); }
-  .obj-bed      { transform: scale(0.7);  transform-origin: top right; }
-  .obj-desk     { transform: scale(0.75); transform-origin: top left; }
-  .obj-chair    { transform: scale(0.75); transform-origin: top left; }
-  .obj-laptop   { transform: scale(0.75); transform-origin: top left; }
-  .obj-cup      { transform: scale(0.8);  transform-origin: top left; }
-  .obj-rug      { transform: perspective(500px) rotateX(30deg) scale(0.8);
-                  transform-origin: 50% 0%; }
-
-  /* Tooltips always visible on mobile (no hover) */
-  .room-object .obj-tooltip {
-    display: none;   /* hide on mobile — tap feedback is from player */
-  }
-
-  /* Mini player */
-  .mini-player {
-    bottom: 16px;
-    right: 16px;
-    left: 16px;
-    width: auto;
-    border-radius: 10px;
-  }
-
-  /* Works link */
-  .works-nav-link {
-    bottom: 98px;
-    right: 16px;
-  }
-
-  /* Works page */
-  .works-hero   { padding: 48px 24px 40px; }
-  .works-section { padding: 0 24px 60px; }
-  .contact-section { padding: 0 24px 60px; }
-  .services-section { padding: 0 24px 60px; }
-  .site-footer  { padding: 24px; }
-  .top-nav      { padding: 16px 24px; }
-
-  .works-grid {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .cta-group {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-/* ---- Very small screens (≤ 420px) ---- */
-@media (max-width: 420px) {
-  .site-header {
-    padding: 20px 20px;
-  }
-  .site-name {
-    font-size: 1.2rem;
-  }
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.hidden {
+  display: none !important;
 }
