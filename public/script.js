@@ -982,6 +982,8 @@ const Postcard = (() => {
           : 'Saved. Your note will reach the next person.');
         document.getElementById('pc-to').value = '';
         document.getElementById('pc-msg').value = '';
+      } else if (data.error === 'relay unavailable' || data.error === 'relay send failed') {
+        setStatus('Could not reach you right now. Try again later.');
       } else {
         setStatus('Could not send.');
       }

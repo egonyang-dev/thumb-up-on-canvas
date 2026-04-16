@@ -206,9 +206,15 @@ app.post('/api/relay', async (req, res) => {
     console.error('[relay] read pending error:', e.message);
   }
 
-  // 2. Send pending message to current participant if it exists and SMTP is ready
+  // 2. If a pending note exists it must be delivered before we can accept a new one.
+  //    If delivery is impossible or fails, abort — do not overwrite the pending note.
   let received = false;
-  if (pending && pending.image_b64 && smtpReady) {
+  if (pending && pending.image_b64) {
+    if (!smtpReady) {
+      console.warn('[relay] SMTP not configured — pending note preserved, relay blocked');
+      return res.status(503).json({ error: 'relay unavailable' });
+    }
+
     const from    = (pending.sender_name || 'someone').slice(0, 60);
     const cityStr = (pending.city        || '').slice(0, 60).trim();
     const msgStr  = (pending.message     || '').slice(0, 160).trim();
@@ -246,14 +252,14 @@ ${cityLine}${msgLine}${fromLine}
       console.log(`[relay] sent pending note to ${email}`);
       received = true;
     } catch (e) {
+      // Send failed — pending note is preserved, relay chain intact
       console.error('[relay] send error:', e.message);
-      // Non-fatal: still store the new message below
+      return res.status(500).json({ error: 'relay send failed' });
     }
-  } else if (!smtpReady) {
-    console.warn('[relay] SMTP not configured — message stored only');
   }
 
-  // 3. Store current participant's message as the new pending (email never stored)
+  // 3. Store current participant's message as the new pending (email never stored).
+  //    Reached only when: (a) no pending existed, or (b) pending was successfully delivered.
   const imgData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
   const newName = (senderName || '').slice(0, 60).trim() || null;
   const newCity = (city       || '').slice(0, 60).trim() || null;
