@@ -857,12 +857,29 @@ function _download(blob) {
 })();
 
 /* ============================================================
-   POSTCARD MODULE
+   RELAY MODULE  (formerly Postcard)
+   Stores current visitor's note for the next person.
+   Sends the previous visitor's stored note to the current visitor.
+   The previous sender's email is never stored or exposed.
    ============================================================ */
 const Postcard = (() => {
   let pendingData = null;
 
-  function setPending(data) { pendingData = data; }
+  const MSG_PROMPTS = [
+    'what happened today?',
+    'what are you grateful for today?',
+    'did anything frustrate you today?',
+    'did you see anything cute today?',
+    'what\u2019s one small thing you noticed today?',
+    'something on your mind right now?',
+  ];
+
+  function setPending(data) {
+    pendingData = data;
+    // Rotate the message placeholder each time the panel is prepared
+    const el = document.getElementById('pc-msg');
+    if (el) el.placeholder = MSG_PROMPTS[Math.floor(Math.random() * MSG_PROMPTS.length)];
+  }
 
   function buildCanvas() {
     const W = 560, H = 700;
@@ -932,12 +949,12 @@ const Postcard = (() => {
   }
 
   async function sendAction() {
-    const to      = (document.getElementById('pc-to').value   || '').trim();
+    const email      = (document.getElementById('pc-to').value   || '').trim();
     const senderName = (document.getElementById('pc-name').value || '').trim();
-    const city    = (document.getElementById('pc-city').value  || '').trim();
-    const message = (document.getElementById('pc-msg').value   || '').trim();
+    const city       = (document.getElementById('pc-city').value || '').trim();
+    const message    = (document.getElementById('pc-msg').value  || '').trim();
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setStatus('Enter a valid email address.'); return;
     }
 
@@ -953,17 +970,20 @@ const Postcard = (() => {
     });
 
     try {
-      const res  = await fetch('/api/postcard', {
+      const res  = await fetch('/api/relay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, senderName, city, message, imageBase64 }),
+        body: JSON.stringify({ email, senderName, city, message, imageBase64 }),
       });
       const data = await res.json();
       if (res.ok) {
-        setStatus('Sent.');
+        setStatus(data.received
+          ? 'Sent. A note from a stranger is on its way to you.'
+          : 'Saved. Your note will reach the next person.');
         document.getElementById('pc-to').value = '';
+        document.getElementById('pc-msg').value = '';
       } else {
-        setStatus(data.error === 'mail not configured' ? 'Mail not available.' : 'Could not send.');
+        setStatus('Could not send.');
       }
     } catch {
       setStatus('Could not send.');
