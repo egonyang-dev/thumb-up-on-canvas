@@ -188,7 +188,9 @@ app.post('/api/postcard', async (req, res) => {
 ${cityLine}${msgLine}${fromLine}
 <hr style="border:none;border-top:1px solid #eee;margin:0 0 22px">
 <p style="font-size:10px;color:#ccc;letter-spacing:0.06em;line-height:1.8">thumb-up-on-canvas<br>
-<a href="${siteUrl}" style="color:#ccc;text-decoration:none">${siteUrl}</a></p>
+<a href="${siteUrl}" style="color:#ccc;text-decoration:none">${siteUrl}</a><br><br>
+<a href="https://www.instagram.com/patchpaper/" style="color:#ccc;text-decoration:none">@patchpaper</a> &nbsp;·&nbsp;
+<a href="https://www.instagram.com/yu.kuang/" style="color:#ccc;text-decoration:none">@yu.kuang</a></p>
 </body></html>`;
 
   try {

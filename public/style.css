@@ -263,8 +263,23 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
 }
 #btn-share        { border-color: #111 !important; color: #111 !important; }
 #btn-open-postcard { border-color: #555 !important; color: #555 !important; }
-#btn-download      { color: #bbb !important; border-color: #e8e8e8 !important; font-size: 9px !important; }
 #share-actions button:hover { opacity: 0.45; }
+
+#btn-download {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  color: #ccc;
+  cursor: pointer;
+  padding: 4px 0 0;
+  text-transform: lowercase;
+  display: block;
+  margin: 0 auto;
+  transition: color 0.2s;
+}
+#btn-download:hover { color: #888; }
 
 #share-status {
   font-size: 10px;

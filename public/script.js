@@ -88,13 +88,17 @@ const ThumbGenerator = (() => {
     const pressure    = Math.pow(Math.min(duration / CONFIG.scan.totalDuration, 1), 0.55);
     const instability = Math.min(totalMovement / 70, 1);
     const sizeMod     = 0.65 + Math.min(contactSize / 25, 0.55);
+    const hasDrawing  = drawPath && drawPath.length > 1;
+
+    // Style variant: ~22% outline-only. Separate RNG so existing filled thumbs are unchanged.
+    const isOutline = makeRNG(seed ^ 0xA5F3C1)() < 0.22;
 
     const cx = CW / 2, cy = CH * 0.56;
     const rx = (22 + sizeMod * 22) * (0.85 + pressure * 0.18);
     const ry = (32 + sizeMod * 30) * (0.88 + pressure * 0.14);
     const tilt = (rng() - 0.5) * 0.22 * (0.4 + instability * 0.6);
 
-    ctx.save();
+    ctx.save(); // tilt
     ctx.translate(cx, cy); ctx.rotate(tilt); ctx.translate(-cx, -cy);
 
     function thumbPath(jitter = 1) {
@@ -110,67 +114,138 @@ const ThumbGenerator = (() => {
       ctx.closePath();
     }
 
-    if (pressure > 0.15) {
-      ctx.save(); thumbPath(0.4);
-      ctx.fillStyle = `rgba(18,52,195,${pressure * 0.06})`; ctx.fill(); ctx.restore();
-    }
-    if (instability > 0.12) {
-      const mag = instability * 22, ang = rng() * Math.PI * 2;
-      ctx.save();
-      ctx.translate(Math.cos(ang) * mag * 0.55, Math.sin(ang) * mag * 0.55);
-      thumbPath(1.4);
-      ctx.fillStyle = `rgba(16,48,188,${0.03 + instability * 0.09})`; ctx.fill(); ctx.restore();
-    }
-
-    thumbPath(); ctx.save(); ctx.clip();
-
-    const baseAlpha = Math.pow(pressure, 0.8) * 0.42;
-    const g = ctx.createRadialGradient(cx, cy - ry * 0.1, 2, cx, cy, ry * 1.2);
-    g.addColorStop(0,    `rgba(20,55,200,${baseAlpha * 1.85})`);
-    g.addColorStop(0.45, `rgba(16,48,190,${baseAlpha})`);
-    g.addColorStop(1,    `rgba(12,40,180,${baseAlpha * 0.18})`);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
-
-    if (pressure > 0.2) {
-      const grains = Math.floor(pressure * 160 * (0.4 + rng() * 0.6));
-      for (let i = 0; i < grains; i++) {
-        const ang = rng() * Math.PI * 2, rad = rng() * rx * 0.92;
-        ctx.beginPath();
-        ctx.arc(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.74, 0.4 + rng() * 0.9, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(10,36,172,${0.12 + pressure * 0.28 + rng() * 0.15})`; ctx.fill();
+    if (isOutline) {
+      // ── Outline-only variant ──────────────────────────────────────────────
+      // Soft outer halo (no fill inside)
+      if (pressure > 0.18) {
+        thumbPath(0.3);
+        ctx.strokeStyle = `rgba(16,48,188,${pressure * 0.07})`;
+        ctx.lineWidth = 7 + pressure * 8; ctx.lineJoin = 'round'; ctx.stroke();
       }
+      // Main irregular outline
+      thumbPath(1.0);
+      ctx.strokeStyle = `rgba(16,48,188,${0.20 + pressure * 0.28})`;
+      ctx.lineWidth = 1.1 + pressure * 0.7; ctx.lineJoin = 'round'; ctx.stroke();
+      // Inner secondary trace (tighter jitter, slightly different rhythm)
+      thumbPath(0.5);
+      ctx.strokeStyle = `rgba(20,56,200,${0.11 + pressure * 0.18})`;
+      ctx.lineWidth = 0.5 + pressure * 0.4; ctx.stroke();
+      // Sparse ridge lines
+      const outlineRidges = Math.floor(2 + pressure * 8 + rng() * 3);
+      for (let i = 0; i < outlineRidges; i++) {
+        const t      = i / Math.max(outlineRidges - 1, 1);
+        const ridgeY = (cy - ry * 0.88) + t * ry * 1.72;
+        const normY  = (ridgeY - cy) / ry;
+        const normYa = normY > 0 ? normY / 0.74 : normY;
+        const absN   = Math.abs(normYa);
+        if (absN >= 1) continue;
+        const halfW  = rx * Math.sqrt(1 - normYa * normYa);
+        if (halfW < 5) continue;
+        const wave   = halfW * 0.18 * (1 - absN * 0.5) * (1 + instability * 0.6);
+        const y0     = ridgeY + (rng() - 0.5) * 3;
+        const x0     = cx - halfW * (0.82 + rng() * 0.12);
+        const x1     = cx + halfW * (0.82 + rng() * 0.12);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0 + (rng() - 0.5) * 2);
+        ctx.bezierCurveTo(
+          x0 + (x1 - x0) * (0.22 + rng() * 0.12), y0 + (rng() - 0.5) * wave,
+          x0 + (x1 - x0) * (0.64 + rng() * 0.12), y0 + (rng() - 0.5) * wave,
+          x1, y0 + (rng() - 0.5) * 2
+        );
+        const ridgeAlpha = (0.07 + pressure * 0.16) * (1 - absN * 0.5) * (0.4 + rng() * 0.6);
+        ctx.strokeStyle = `rgba(16,48,188,${ridgeAlpha})`;
+        ctx.lineWidth   = 0.5 + pressure * 0.5 + rng() * 0.3;
+        ctx.stroke();
+      }
+    } else {
+      // ── Filled variant ───────────────────────────────────────────────────
+      if (pressure > 0.15) {
+        ctx.save(); thumbPath(0.4);
+        ctx.fillStyle = `rgba(18,52,195,${pressure * 0.06})`; ctx.fill(); ctx.restore();
+      }
+      if (instability > 0.12) {
+        const mag = instability * 22, ang = rng() * Math.PI * 2;
+        ctx.save();
+        ctx.translate(Math.cos(ang) * mag * 0.55, Math.sin(ang) * mag * 0.55);
+        thumbPath(1.4);
+        ctx.fillStyle = `rgba(16,48,188,${0.03 + instability * 0.09})`; ctx.fill(); ctx.restore();
+      }
+
+      thumbPath(); ctx.save(); ctx.clip(); // clip
+
+      // Lighter fill base when drawing is present so the trace reads as the focus
+      const baseAlpha = Math.pow(pressure, 0.8) * 0.42 * (hasDrawing ? 0.55 : 1.0);
+      const g = ctx.createRadialGradient(cx, cy - ry * 0.1, 2, cx, cy, ry * 1.2);
+      g.addColorStop(0,    `rgba(20,55,200,${baseAlpha * 1.85})`);
+      g.addColorStop(0.45, `rgba(16,48,190,${baseAlpha})`);
+      g.addColorStop(1,    `rgba(12,40,180,${baseAlpha * 0.18})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
+
+      if (pressure > 0.2) {
+        const grains = Math.floor(pressure * 160 * (0.4 + rng() * 0.6));
+        for (let i = 0; i < grains; i++) {
+          const ang = rng() * Math.PI * 2, rad = rng() * rx * 0.92;
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.74, 0.4 + rng() * 0.9, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(10,36,172,${0.12 + pressure * 0.28 + rng() * 0.15})`; ctx.fill();
+        }
+      }
+
+      const ridgeCount = Math.floor(4 + pressure * 22 + rng() * 4);
+      for (let i = 0; i < ridgeCount; i++) {
+        const t      = i / Math.max(ridgeCount - 1, 1);
+        const ridgeY = (cy - ry * 0.88) + t * ry * 1.72;
+        const normY  = (ridgeY - cy) / ry;
+        const normYa = normY > 0 ? normY / 0.74 : normY;
+        const absN   = Math.abs(normYa);
+        if (absN >= 1) continue;
+        const halfW  = rx * Math.sqrt(1 - normYa * normYa);
+        if (halfW < 4) continue;
+        const wave   = halfW * 0.24 * (1 - absN * 0.45) * (1 + instability * 0.85);
+        const y0     = ridgeY + (rng() - 0.5) * 4;
+        const x0     = cx - halfW * (0.86 + rng() * 0.14);
+        const x1     = cx + halfW * (0.86 + rng() * 0.14);
+        if (instability > 0.4 && rng() < instability * 0.35) continue;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0 + (rng() - 0.5) * 3);
+        ctx.bezierCurveTo(
+          x0 + (x1 - x0) * (0.20 + rng() * 0.14), y0 + (rng() - 0.5) * wave,
+          x0 + (x1 - x0) * (0.66 + rng() * 0.14), y0 + (rng() - 0.5) * wave,
+          x1, y0 + (rng() - 0.5) * 3
+        );
+        const edgeFade   = 1 - absN * 0.44;
+        const ridgeAlpha = (0.22 + pressure * 0.62) * edgeFade * (0.5 + rng() * 0.5);
+        ctx.strokeStyle = `rgba(10,40,172,${ridgeAlpha})`;
+        ctx.lineWidth   = 0.6 + pressure * 0.95 + rng() * 0.6;
+        ctx.stroke();
+      }
+
+      // Draw path inside clip (filled variant)
+      if (hasDrawing) {
+        for (let i = 1; i < drawPath.length; i++) {
+          const p0 = drawPath[i - 1], p1 = drawPath[i];
+          const mapX = nx => (cx - rx * 0.88) + nx * (rx * 1.76);
+          const mapY = ny => (cy - ry * 0.82) + ny * (ry * 1.60);
+          let x0 = mapX(p0.x), y0 = mapY(p0.y);
+          let x1 = mapX(p1.x), y1 = mapY(p1.y);
+          const sY0 = (cy - ry * 0.88) + (p0.t || 0) * ry * 1.72;
+          const sY1 = (cy - ry * 0.88) + (p1.t || 0) * ry * 1.72;
+          const d0 = Math.max(0, 1 - Math.abs(y0 - sY0) / 28) * 7;
+          const d1 = Math.max(0, 1 - Math.abs(y1 - sY1) / 28) * 7;
+          y0 += (y0 > sY0 ? -d0 : d0) * 0.7; y1 += (y1 > sY1 ? -d1 : d1) * 0.7;
+          x0 += (rng() - 0.5) * d0 * 1.4;    x1 += (rng() - 0.5) * d1 * 1.4;
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+          ctx.strokeStyle = `rgba(8,35,175,${0.45 + pressure * 0.40})`;
+          ctx.lineWidth = 1.2 + pressure * 1.8 + rng() * 0.5;
+          ctx.lineCap = 'round'; ctx.stroke();
+        }
+      }
+
+      ctx.restore(); // clip
     }
 
-    const ridgeCount = Math.floor(4 + pressure * 22 + rng() * 4);
-    for (let i = 0; i < ridgeCount; i++) {
-      const t = i / Math.max(ridgeCount - 1, 1);
-      const ridgeY = (cy - ry * 0.88) + t * ry * 1.72;
-      const normY  = (ridgeY - cy) / ry;
-      const normYa = normY > 0 ? normY / 0.74 : normY;
-      const absN   = Math.abs(normYa);
-      if (absN >= 1) continue;
-      const halfW = rx * Math.sqrt(1 - normYa * normYa);
-      if (halfW < 4) continue;
-      const wave = halfW * 0.24 * (1 - absN * 0.45) * (1 + instability * 0.85);
-      const y0 = ridgeY + (rng() - 0.5) * 4;
-      const x0 = cx - halfW * (0.86 + rng() * 0.14);
-      const x1 = cx + halfW * (0.86 + rng() * 0.14);
-      if (instability > 0.4 && rng() < instability * 0.35) continue;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0 + (rng() - 0.5) * 3);
-      ctx.bezierCurveTo(
-        x0 + (x1 - x0) * (0.20 + rng() * 0.14), y0 + (rng() - 0.5) * wave,
-        x0 + (x1 - x0) * (0.66 + rng() * 0.14), y0 + (rng() - 0.5) * wave,
-        x1, y0 + (rng() - 0.5) * 3
-      );
-      const edgeFade   = 1 - absN * 0.44;
-      const ridgeAlpha = (0.22 + pressure * 0.62) * edgeFade * (0.5 + rng() * 0.5);
-      ctx.strokeStyle = `rgba(10,40,172,${ridgeAlpha})`;
-      ctx.lineWidth   = 0.6 + pressure * 0.95 + rng() * 0.6;
-      ctx.stroke();
-    }
-
-    if (drawPath && drawPath.length > 1) {
+    // Draw path in outline variant (stronger — it's the primary visual content)
+    if (isOutline && hasDrawing) {
       for (let i = 1; i < drawPath.length; i++) {
         const p0 = drawPath[i - 1], p1 = drawPath[i];
         const mapX = nx => (cx - rx * 0.88) + nx * (rx * 1.76);
@@ -184,15 +259,15 @@ const ThumbGenerator = (() => {
         y0 += (y0 > sY0 ? -d0 : d0) * 0.7; y1 += (y1 > sY1 ? -d1 : d1) * 0.7;
         x0 += (rng() - 0.5) * d0 * 1.4;    x1 += (rng() - 0.5) * d1 * 1.4;
         ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
-        ctx.strokeStyle = `rgba(8,35,175,${0.45 + pressure * 0.40})`;
-        ctx.lineWidth = 1.2 + pressure * 1.8 + rng() * 0.5;
+        ctx.strokeStyle = `rgba(8,35,175,${0.55 + pressure * 0.35})`;
+        ctx.lineWidth = 1.5 + pressure * 1.8 + rng() * 0.5;
         ctx.lineCap = 'round'; ctx.stroke();
       }
     }
 
-    ctx.restore();
+    ctx.restore(); // tilt
 
-    // Fade edges to transparent (alpha) instead of white — no fringe when thumbs overlap
+    // Fade edges to transparent (alpha) — no fringe when thumbs overlap
     const fade = ctx.createRadialGradient(cx, cy, rx * 0.28, cx, cy, rx * 1.5);
     fade.addColorStop(0,    'rgba(0,0,0,1)');
     fade.addColorStop(0.62, 'rgba(0,0,0,1)');
@@ -200,7 +275,6 @@ const ThumbGenerator = (() => {
     ctx.globalCompositeOperation = 'destination-in';
     ctx.fillStyle = fade; ctx.fillRect(0, 0, CW, CH);
     ctx.globalCompositeOperation = 'source-over';
-    ctx.restore();
 
     return canvas;
   }
@@ -650,7 +724,6 @@ const Share = (() => {
 
     document.getElementById('btn-share').addEventListener('click',     shareAction);
     document.getElementById('btn-download').addEventListener('click',  downloadAction);
-    document.getElementById('btn-copy-link').addEventListener('click', copyLinkAction);
     document.getElementById('btn-dismiss-share').addEventListener('click', () => {
       document.getElementById('share-panel').classList.add('hidden');
     });
@@ -770,13 +843,7 @@ const Share = (() => {
     setStatus('Downloaded.');
   }
 
-  // ── Copy link only ───────────────────────────────────────────────────────
-  async function copyLinkAction() {
-    const ok = await _copyLink(location.href);
-    setStatus(ok ? 'Link copied.' : location.href);
-  }
-
-  function _download(blob) {
+function _download(blob) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'thumb-up.png'; a.click();
     URL.revokeObjectURL(a.href);

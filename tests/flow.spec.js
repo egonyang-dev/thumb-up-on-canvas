@@ -193,15 +193,16 @@ test('14 — font button toggles active', async ({ page }) => {
   await expect(page.locator('.font-btn[data-font="mono"]')).not.toHaveClass(/active/);
 });
 
-test('15 — share panel has Share, Download, and Copy link buttons', async ({ page }) => {
+test('15 — share panel has Share and Postcard as primary buttons, Download as text link', async ({ page }) => {
   await page.goto('/');
   await clickLike(page);
   const vp = page.viewportSize();
   await clickCanvas(page, vp.width / 2, vp.height / 2);
   await doFullScan(page);
   await expect(page.locator('#btn-share')).toBeVisible();
+  await expect(page.locator('#btn-open-postcard')).toBeVisible();
   await expect(page.locator('#btn-download')).toBeVisible();
-  await expect(page.locator('#btn-copy-link')).toBeVisible();
+  await expect(page.locator('#btn-copy-link')).toHaveCount(0);
 });
 
 test('16 — /api/health reports storage mode', async ({ page }) => {
