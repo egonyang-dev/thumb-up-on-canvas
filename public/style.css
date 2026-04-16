@@ -261,7 +261,9 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
   color: #666;
   transition: opacity 0.2s;
 }
-#btn-share { border-color: #111 !important; color: #111 !important; }
+#btn-share        { border-color: #111 !important; color: #111 !important; }
+#btn-open-postcard { border-color: #555 !important; color: #555 !important; }
+#btn-download      { color: #bbb !important; border-color: #e8e8e8 !important; font-size: 9px !important; }
 #share-actions button:hover { opacity: 0.45; }
 
 #share-status {
@@ -284,20 +286,6 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
   padding: 4px;
 }
 #btn-dismiss-share:hover { color: #555; }
-
-/* Postcard link row */
-#postcard-link {
-  font-size: 10px;
-  letter-spacing: 0.10em;
-  color: #bbb;
-  margin: 0;
-}
-#btn-open-postcard {
-  cursor: pointer;
-  text-decoration: none;
-  transition: color 0.15s;
-}
-#btn-open-postcard:hover { color: #555; }
 
 /* ============================================================
    POSTCARD PANEL
