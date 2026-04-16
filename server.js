@@ -1,11 +1,12 @@
 'use strict';
-const express = require('express');
-const path    = require('path');
-const { Pool } = require('pg');
-const fs      = require('fs');
+const express    = require('express');
+const path       = require('path');
+const { Pool }   = require('pg');
+const fs         = require('fs');
+const nodemailer = require('nodemailer');
 
 const app = express();
-app.use(express.json({ limit: '512kb' }));
+app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Storage ──────────────────────────────────────────────────────────────────
@@ -155,6 +156,64 @@ app.post('/api/thumbs/:id/like', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// ── POST /api/postcard ───────────────────────────────────────────────────────
+app.post('/api/postcard', async (req, res) => {
+  const { to, senderName, city, message, imageBase64 } = req.body || {};
+
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return res.status(400).json({ error: 'invalid email' });
+  }
+  if (!imageBase64) return res.status(400).json({ error: 'missing image' });
+
+  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT, SITE_URL } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    console.warn('[postcard] SMTP not configured — set SMTP_HOST, SMTP_USER, SMTP_PASS');
+    return res.status(503).json({ error: 'mail not configured' });
+  }
+
+  const from     = (senderName || '').slice(0, 60).trim() || 'someone';
+  const cityStr  = (city        || '').slice(0, 60).trim();
+  const msgStr   = (message     || '').slice(0, 160).trim();
+  const siteUrl  = SITE_URL || 'https://thumb-up-on-canvas.onrender.com';
+  const imgData  = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+  const cityLine   = cityStr ? `<p style="font-size:11px;letter-spacing:0.10em;color:#aaa;margin:0 0 14px">${esc(cityStr.toLowerCase())}</p>` : '';
+  const msgLine    = msgStr   ? `<p style="font-size:14px;letter-spacing:0.04em;line-height:1.75;margin:0 0 28px">${esc(msgStr)}</p>` : '';
+  const fromLine   = `<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 36px">&#8212; ${esc(from)}</p>`;
+
+  const html = `<!DOCTYPE html>
+<html><body style="background:#fff;font-family:'Courier New',Courier,monospace;color:#111;max-width:560px;margin:0 auto;padding:48px 24px;">
+<img src="cid:thumb" alt="" style="width:100%;max-width:480px;display:block;margin:0 auto 36px">
+${cityLine}${msgLine}${fromLine}
+<hr style="border:none;border-top:1px solid #eee;margin:0 0 22px">
+<p style="font-size:10px;color:#ccc;letter-spacing:0.06em;line-height:1.8">thumb-up-on-canvas<br>
+<a href="${siteUrl}" style="color:#ccc;text-decoration:none">${siteUrl}</a></p>
+</body></html>`;
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: parseInt(SMTP_PORT || '587'),
+      secure: SMTP_PORT === '465',
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+    await transporter.sendMail({
+      from: SMTP_FROM || SMTP_USER,
+      to:   to.slice(0, 120),
+      subject: 'a thumb-up for you',
+      html,
+      attachments: [{ filename: 'thumb-up.png', content: imgData, encoding: 'base64', cid: 'thumb' }],
+    });
+    console.log(`[postcard] sent to ${to}`);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[postcard] send error:', e.message);
+    res.status(500).json({ error: 'send failed' });
+  }
+});
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;

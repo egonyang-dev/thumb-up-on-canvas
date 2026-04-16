@@ -285,6 +285,115 @@ body[data-state="inspecting"]     #viewport:active { cursor: grabbing; }
 }
 #btn-dismiss-share:hover { color: #555; }
 
+/* Postcard link row */
+#postcard-link {
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  color: #bbb;
+  margin: 0;
+}
+#btn-open-postcard {
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+#btn-open-postcard:hover { color: #555; }
+
+/* ============================================================
+   POSTCARD PANEL
+   ============================================================ */
+#postcard-panel {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 26px 32px 30px;
+  background: #fff;
+  border-top: 1px solid #e8e8e8;
+  z-index: 45;
+  pointer-events: all;
+  width: 100%;
+  max-width: 340px;
+}
+
+#postcard-panel input,
+#postcard-panel textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #111;
+  padding: 5px 0;
+  outline: none;
+  text-align: center;
+  user-select: text;
+  -webkit-user-select: text;
+  resize: none;
+}
+#postcard-panel input::placeholder,
+#postcard-panel textarea::placeholder { color: #c0c0c0; }
+#postcard-panel input:focus,
+#postcard-panel textarea:focus { border-bottom-color: rgba(30,80,200,0.45); }
+
+#pc-actions { width: 100%; }
+#btn-send-postcard {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #111;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 7px 4px;
+  cursor: pointer;
+  color: #111;
+  transition: opacity 0.2s;
+}
+#btn-send-postcard:hover  { opacity: 0.45; }
+#btn-send-postcard:disabled { opacity: 0.3; cursor: default; }
+
+#pc-status {
+  font-size: 10px;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  min-height: 14px;
+  text-align: center;
+  margin: 0;
+}
+
+#btn-back-postcard {
+  position: absolute;
+  top: 10px; left: 12px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #bbb;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+#btn-back-postcard:hover { color: #555; }
+
+#btn-dismiss-postcard {
+  position: absolute;
+  top: 10px; right: 12px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #bbb;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+#btn-dismiss-postcard:hover { color: #555; }
+
 /* ============================================================
    LIKE UI  (world-space, shown only for the focused thumb)
    ============================================================ */

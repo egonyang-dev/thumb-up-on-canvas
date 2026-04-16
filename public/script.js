@@ -192,11 +192,14 @@ const ThumbGenerator = (() => {
 
     ctx.restore();
 
-    const vig = ctx.createRadialGradient(cx, cy, rx * 0.25, cx, cy, rx * 1.5);
-    vig.addColorStop(0,    'rgba(255,255,255,0)');
-    vig.addColorStop(0.65, 'rgba(255,255,255,0)');
-    vig.addColorStop(1,    'rgba(255,255,255,0.94)');
-    ctx.fillStyle = vig; ctx.fillRect(0, 0, CW, CH);
+    // Fade edges to transparent (alpha) instead of white — no fringe when thumbs overlap
+    const fade = ctx.createRadialGradient(cx, cy, rx * 0.28, cx, cy, rx * 1.5);
+    fade.addColorStop(0,    'rgba(0,0,0,1)');
+    fade.addColorStop(0.62, 'rgba(0,0,0,1)');
+    fade.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.fillStyle = fade; ctx.fillRect(0, 0, CW, CH);
+    ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
 
     return canvas;
@@ -368,9 +371,10 @@ const ThumbRenderer = (() => {
     });
 
     const img = document.createElement('img');
-    img.src       = tc.toDataURL('image/png');
-    img.className = 'thumb-mark';
-    img.draggable = false;
+    img.src            = tc.toDataURL('image/png');
+    img.className      = 'thumb-mark';
+    img.draggable      = false;
+    img.dataset.thumbId = data.id;
     img.style.left   = (data.wx - dW / 2) + 'px';
     img.style.top    = (data.wy - dH / 2) + 'px';
     img.style.width  = dW + 'px';
@@ -650,9 +654,14 @@ const Share = (() => {
     document.getElementById('btn-dismiss-share').addEventListener('click', () => {
       document.getElementById('share-panel').classList.add('hidden');
     });
+    document.getElementById('btn-open-postcard').addEventListener('click', () => {
+      document.getElementById('share-panel').classList.add('hidden');
+      document.getElementById('postcard-panel').classList.remove('hidden');
+      document.getElementById('pc-status').textContent = '';
+    });
   }
 
-  function setPending(data) { pendingData = data; }
+  function setPending(data) { pendingData = data; Postcard.setPending(data); }
 
   function buildCanvas() {
     const W = 1080, H = 1920;
@@ -781,10 +790,142 @@ const Share = (() => {
 })();
 
 /* ============================================================
+   POSTCARD MODULE
+   ============================================================ */
+const Postcard = (() => {
+  let pendingData = null;
+
+  function setPending(data) { pendingData = data; }
+
+  function buildCanvas() {
+    const W = 560, H = 700;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+
+    if (pendingData) {
+      const tc = ThumbGenerator.generate({
+        duration: pendingData.duration, totalMovement: pendingData.totalMovement,
+        contactSize: pendingData.contactSize, seed: pendingData.seed,
+        drawPath: pendingData.drawPath || [],
+      });
+      const maxW = W * 0.50, maxH = H * 0.40;
+      const sc   = Math.min(maxW / tc.width, maxH / tc.height);
+      const tw   = tc.width * sc, th = tc.height * sc;
+      ctx.drawImage(tc, (W - tw) / 2, H * 0.09, tw, th);
+    }
+
+    ctx.textAlign = 'center';
+
+    const city    = (document.getElementById('pc-city').value || '').trim();
+    const name    = (document.getElementById('pc-name').value || '').trim();
+    const message = (document.getElementById('pc-msg').value  || '').trim();
+
+    if (city) {
+      ctx.font = '11px "Courier New",Courier,monospace';
+      ctx.fillStyle = '#aaa';
+      ctx.fillText(city.toLowerCase(), W / 2, H * 0.58);
+    }
+    if (message) {
+      ctx.font = '13px "Courier New",Courier,monospace';
+      ctx.fillStyle = '#111';
+      _wrapText(ctx, message, W / 2, H * 0.65, W * 0.78, 20);
+    }
+    if (name) {
+      ctx.font = '11px "Courier New",Courier,monospace';
+      ctx.fillStyle = '#888';
+      ctx.fillText('\u2014 ' + name, W / 2, H * 0.84);
+    }
+    ctx.font = '10px "Courier New",Courier,monospace';
+    ctx.fillStyle = '#ccc';
+    ctx.fillText('thumb-up-on-canvas', W / 2, H * 0.92);
+
+    return c;
+  }
+
+  function _wrapText(ctx, text, x, y, maxW, lineH) {
+    if (/[\u4e00-\u9fa5]/.test(text) || !text.includes(' ')) {
+      ctx.fillText(text, x, y); return;
+    }
+    const words = text.split(' ');
+    let line = '';
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, x, y); line = word; y += lineH;
+      } else { line = test; }
+    }
+    ctx.fillText(line, x, y);
+  }
+
+  function setStatus(msg) {
+    const el = document.getElementById('pc-status');
+    if (el) el.textContent = msg;
+  }
+
+  async function sendAction() {
+    const to      = (document.getElementById('pc-to').value   || '').trim();
+    const senderName = (document.getElementById('pc-name').value || '').trim();
+    const city    = (document.getElementById('pc-city').value  || '').trim();
+    const message = (document.getElementById('pc-msg').value   || '').trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      setStatus('Enter a valid email address.'); return;
+    }
+
+    setStatus('Sending\u2026');
+    const sendBtn = document.getElementById('btn-send-postcard');
+    sendBtn.disabled = true;
+
+    const blob = await new Promise(r => buildCanvas().toBlob(r, 'image/png'));
+    const imageBase64 = await new Promise(r => {
+      const reader = new FileReader();
+      reader.onloadend = () => r(reader.result);
+      reader.readAsDataURL(blob);
+    });
+
+    try {
+      const res  = await fetch('/api/postcard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, senderName, city, message, imageBase64 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus('Sent.');
+        document.getElementById('pc-to').value = '';
+      } else {
+        setStatus(data.error === 'mail not configured' ? 'Mail not available.' : 'Could not send.');
+      }
+    } catch {
+      setStatus('Could not send.');
+    }
+    sendBtn.disabled = false;
+  }
+
+  function init() {
+    document.getElementById('btn-back-postcard').addEventListener('click', () => {
+      document.getElementById('postcard-panel').classList.add('hidden');
+      document.getElementById('share-panel').classList.remove('hidden');
+    });
+    document.getElementById('btn-dismiss-postcard').addEventListener('click', () => {
+      document.getElementById('postcard-panel').classList.add('hidden');
+    });
+    document.getElementById('btn-send-postcard').addEventListener('click', sendAction);
+  }
+
+  return { init, setPending };
+})();
+
+/* ============================================================
    APPLICATION
    ============================================================ */
 const App = (() => {
   let state = 'idle', clickWorld = null, pressing = false, pressStart = 0, tapOrigin = null;
+  const tapEgg = { id: null, count: 0, timer: null };
+  const TAP_EGG_TARGET = 5;
+  const TAP_EGG_WINDOW = 850; // ms between taps to keep the streak alive
 
   function setState(s) { state = s; document.body.dataset.state = s; }
 
@@ -797,6 +938,7 @@ const App = (() => {
     ThumbRenderer.init(world);
     DrawCanvas.init();
     Share.init();
+    Postcard.init();
 
     // Pan/zoom → update which thumb gets the like focus
     ZoomPan.setZoomCallback((scale, offsetX, offsetY) => {
@@ -870,26 +1012,66 @@ const App = (() => {
     }
   }
 
+  // Brief opacity dip — quiet, minimal feedback per tap
+  function pulseThumb(id) {
+    const el = document.querySelector(`.thumb-mark[data-thumb-id="${id}"]`);
+    if (!el) return;
+    const orig = el.style.opacity;
+    el.style.transition = 'opacity 0.10s ease';
+    el.style.opacity    = String(parseFloat(orig || '1') * 0.38);
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.22s ease';
+      el.style.opacity    = orig;
+      setTimeout(() => { el.style.transition = ''; }, 230);
+    }, 110);
+  }
+
   async function handleTap(screenX, screenY) {
     const { scale, offsetX, offsetY } = ZoomPan.getState();
     const hitId = LikeFocusSystem.hitTest(screenX, screenY, scale, offsetX, offsetY);
 
     if (!hitId) {
       LikeFocusSystem.clearFocus();
+      tapEgg.id = null; tapEgg.count = 0; clearTimeout(tapEgg.timer);
       return;
     }
 
     const thumb = LikeFocusSystem.getById(hitId);
     if (!thumb) return;
 
-    // Target: thumb fills ~38% of the shorter viewport dimension on screen
-    const vShort      = Math.min(window.innerWidth, window.innerHeight);
-    const targetScale = Math.max(CONFIG.zoom.min, Math.min(CONFIG.zoom.max,
-      (vShort * 0.38) / thumb.dW
-    ));
+    const isNewThumb = hitId !== tapEgg.id;
 
-    await ZoomPan.zoomToWorld(thumb.wx, thumb.wy, targetScale, 700);
-    LikeFocusSystem.focusId(hitId);
+    // Update tap streak
+    if (isNewThumb) { tapEgg.id = hitId; tapEgg.count = 1; }
+    else            { tapEgg.count++; }
+    clearTimeout(tapEgg.timer);
+    tapEgg.timer = setTimeout(() => { tapEgg.id = null; tapEgg.count = 0; }, TAP_EGG_WINDOW);
+
+    // Subtle pulse on every tap
+    pulseThumb(hitId);
+
+    // 5th tap: easter egg — zoom very close + register like
+    if (tapEgg.count >= TAP_EGG_TARGET) {
+      tapEgg.count = 0; tapEgg.id = null; clearTimeout(tapEgg.timer);
+      const vShort     = Math.min(window.innerWidth, window.innerHeight);
+      const closeScale = Math.max(CONFIG.zoom.min, Math.min(CONFIG.zoom.max,
+        (vShort * 0.56) / thumb.dW
+      ));
+      await ZoomPan.zoomToWorld(thumb.wx, thumb.wy, closeScale, 700);
+      LikeFocusSystem.focusId(hitId);
+      LikeSystem.like(hitId);
+      return;
+    }
+
+    // First tap on a new thumb: zoom to like-ready size
+    if (isNewThumb) {
+      const vShort      = Math.min(window.innerWidth, window.innerHeight);
+      const targetScale = Math.max(CONFIG.zoom.min, Math.min(CONFIG.zoom.max,
+        (vShort * 0.38) / thumb.dW
+      ));
+      await ZoomPan.zoomToWorld(thumb.wx, thumb.wy, targetScale, 700);
+      LikeFocusSystem.focusId(hitId);
+    }
   }
 
   async function handleFirstClick(e) {

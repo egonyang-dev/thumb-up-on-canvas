@@ -11,6 +11,19 @@ services:
         fromDatabase:
           name: thumb-up-postgres
           property: connectionString
+      # Set these manually in Render dashboard to enable the postcard email feature
+      - key: SITE_URL
+        value: https://thumb-up-on-canvas.onrender.com
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
 
 databases:
   - name: thumb-up-postgres
