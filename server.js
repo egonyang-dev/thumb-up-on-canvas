@@ -178,6 +178,51 @@ app.post('/api/thumbs/:id/like', async (req, res) => {
   }
 });
 
+// ── SMTP helper ──────────────────────────────────────────────────────────────
+function makeTransporter() {
+  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: parseInt(SMTP_PORT || '587'),
+    secure: SMTP_PORT === '465',
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  });
+}
+
+function relayFooter(siteUrl) {
+  return `<hr style="border:none;border-top:1px solid #eee;margin:0 0 22px">
+<p style="font-size:10px;color:#ccc;letter-spacing:0.06em;line-height:1.8">thumb-up-on-canvas<br>
+<a href="${siteUrl}" style="color:#ccc;text-decoration:none">${siteUrl}</a><br><br>
+<a href="https://www.instagram.com/yangyukuang/" style="color:#ccc;text-decoration:none">@yangyukuang</a> &nbsp;·&nbsp;
+<a href="https://www.instagram.com/patch.paper/" style="color:#ccc;text-decoration:none">@patch.paper</a></p>`;
+}
+
+// ── GET /api/relay/status ─────────────────────────────────────────────────────
+// Returns current pending metadata (no image) for diagnostics.
+app.get('/api/relay/status', async (_req, res) => {
+  try {
+    let pending = null;
+    if (pool) {
+      const { rows } = await pool.query(
+        'SELECT id, sender_name, city, message, created_at FROM relay_pending WHERE id = 1'
+      );
+      if (rows.length) pending = rows[0];
+    } else {
+      const raw = readRelayFallback();
+      if (raw) pending = { sender_name: raw.sender_name, city: raw.city, message: raw.message, created_at: raw.created_at };
+    }
+    res.json({ hasPending: !!pending, pending: pending ? {
+      senderName: pending.sender_name,
+      city:       pending.city,
+      message:    pending.message,
+      createdAt:  pending.created_at,
+    } : null });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── POST /api/relay ──────────────────────────────────────────────────────────
 // Relay logic: read pending → send to current participant → store current as new pending.
 // The previous sender's email is never stored or exposed.
@@ -189,9 +234,10 @@ app.post('/api/relay', async (req, res) => {
   }
   if (!imageBase64) return res.status(400).json({ error: 'missing image' });
 
-  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT, SITE_URL } = process.env;
-  const smtpReady = !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
-  const siteUrl   = SITE_URL || 'https://thumb-up-on-canvas.onrender.com';
+  const { SMTP_FROM, SITE_URL, ARCHIVE_EMAIL } = process.env;
+  const transporter = makeTransporter();
+  const smtpReady   = !!transporter;
+  const siteUrl     = SITE_URL || 'https://thumb-up-on-canvas.onrender.com';
 
   // 1. Read pending message (the previous person's note)
   let pending = null;
@@ -199,17 +245,23 @@ app.post('/api/relay', async (req, res) => {
     if (pool) {
       const { rows } = await pool.query('SELECT * FROM relay_pending WHERE id = 1');
       if (rows.length) pending = rows[0];
+      console.log(`[relay] pending found: ${!!pending} (storage: postgres)`);
     } else {
       pending = readRelayFallback();
+      console.log(`[relay] pending found: ${!!pending} (storage: file)`);
     }
   } catch (e) {
-    console.error('[relay] read pending error:', e.message);
+    // If the table doesn't exist yet (fresh deploy), treat as no pending but log clearly
+    console.error('[relay] read pending error — table may not exist yet:', e.message);
+    return res.status(500).json({ error: 'relay storage unavailable' });
   }
 
   // 2. If a pending note exists it must be delivered before we can accept a new one.
   //    If delivery is impossible or fails, abort — do not overwrite the pending note.
   let received = false;
   if (pending && pending.image_b64) {
+    console.log(`[relay] pending note exists (created: ${pending.created_at}) — attempting relay send to ${email}`);
+
     if (!smtpReady) {
       console.warn('[relay] SMTP not configured — pending note preserved, relay blocked');
       return res.status(503).json({ error: 'relay unavailable' });
@@ -223,39 +275,31 @@ app.post('/api/relay', async (req, res) => {
     const msgLine  = msgStr  ? `<p style="font-size:14px;letter-spacing:0.04em;line-height:1.75;margin:0 0 28px">${esc(msgStr)}</p>`          : '';
     const fromLine = `<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 36px">&#8212; ${esc(from)}</p>`;
 
-    const html = `<!DOCTYPE html>
+    const relayHtml = `<!DOCTYPE html>
 <html><body style="background:#fff;font-family:'Courier New',Courier,monospace;color:#111;max-width:560px;margin:0 auto;padding:48px 24px;">
 <p style="font-size:10px;letter-spacing:0.14em;color:#bbb;margin:0 0 36px;text-transform:lowercase">a stranger left this for you.</p>
 <img src="cid:thumb" alt="" style="width:100%;max-width:480px;display:block;margin:0 auto 36px">
 ${cityLine}${msgLine}${fromLine}
-<hr style="border:none;border-top:1px solid #eee;margin:0 0 22px">
-<p style="font-size:10px;color:#ccc;letter-spacing:0.06em;line-height:1.8">thumb-up-on-canvas<br>
-<a href="${siteUrl}" style="color:#ccc;text-decoration:none">${siteUrl}</a><br><br>
-<a href="https://www.instagram.com/yangyukuang/" style="color:#ccc;text-decoration:none">@yangyukuang</a> &nbsp;·&nbsp;
-<a href="https://www.instagram.com/patch.paper/" style="color:#ccc;text-decoration:none">@patch.paper</a></p>
+${relayFooter(siteUrl)}
 </body></html>`;
 
     try {
-      const transporter = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: parseInt(SMTP_PORT || '587'),
-        secure: SMTP_PORT === '465',
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
-      });
       await transporter.sendMail({
-        from:    SMTP_FROM || SMTP_USER,
-        to:      email.slice(0, 120),
-        subject: 'someone left a note for you',
-        html,
+        from:        SMTP_FROM || process.env.SMTP_USER,
+        to:          email.slice(0, 120),
+        subject:     'someone left a note for you',
+        html:        relayHtml,
         attachments: [{ filename: 'thumb-up.png', content: pending.image_b64, encoding: 'base64', cid: 'thumb' }],
       });
-      console.log(`[relay] sent pending note to ${email}`);
+      console.log(`[relay] relay email sent successfully to ${email}`);
       received = true;
     } catch (e) {
       // Send failed — pending note is preserved, relay chain intact
-      console.error('[relay] send error:', e.message);
+      console.error(`[relay] send FAILED to ${email}:`, e.message);
       return res.status(500).json({ error: 'relay send failed' });
     }
+  } else {
+    console.log('[relay] no pending note — storing this submission as the first in chain');
   }
 
   // 3. Store current participant's message as the new pending (email never stored).
@@ -279,11 +323,61 @@ ${cityLine}${msgLine}${fromLine}
         [newName, newCity, newMsg, imgData]
       );
     } else {
-      writeRelayFallback({ senderName: newName, city: newCity, message: newMsg, imageB64: imgData, createdAt: new Date().toISOString() });
+      // Use snake_case keys to match Postgres column names throughout
+      writeRelayFallback({ sender_name: newName, city: newCity, message: newMsg, image_b64: imgData, created_at: new Date().toISOString() });
     }
+    console.log(`[relay] stored new pending note (name: ${newName || 'anonymous'}, city: ${newCity || '—'})`);
   } catch (e) {
     console.error('[relay] store error:', e.message);
     return res.status(500).json({ error: 'store failed' });
+  }
+
+  // 4. Side emails — non-fatal, fire-and-forget.
+  if (smtpReady) {
+    const fromAddr = SMTP_FROM || process.env.SMTP_USER;
+
+    // 4a. Confirmation to the current submitter (their own note, quiet)
+    const cityLine  = newCity ? `<p style="font-size:11px;letter-spacing:0.10em;color:#aaa;margin:0 0 14px">${esc(newCity.toLowerCase())}</p>` : '';
+    const msgLine   = newMsg  ? `<p style="font-size:14px;letter-spacing:0.04em;line-height:1.75;margin:0 0 28px">${esc(newMsg)}</p>`          : '';
+    const nameLine  = newName ? `<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 36px">&#8212; ${esc(newName)}</p>`        : '';
+    const confirmHtml = `<!DOCTYPE html>
+<html><body style="background:#fff;font-family:'Courier New',Courier,monospace;color:#111;max-width:560px;margin:0 auto;padding:48px 24px;">
+<p style="font-size:10px;letter-spacing:0.14em;color:#bbb;margin:0 0 36px;text-transform:lowercase">your note has been saved.</p>
+<img src="cid:thumb" alt="" style="width:100%;max-width:480px;display:block;margin:0 auto 36px">
+${cityLine}${msgLine}${nameLine}
+<p style="font-size:10px;letter-spacing:0.10em;color:#ccc;margin:0 0 36px">it will reach the next person.</p>
+${relayFooter(siteUrl)}
+</body></html>`;
+
+    transporter.sendMail({
+      from: fromAddr, to: email.slice(0, 120),
+      subject: 'your note has been saved',
+      html: confirmHtml,
+      attachments: [{ filename: 'thumb-up.png', content: imgData, encoding: 'base64', cid: 'thumb' }],
+    }).then(() => console.log(`[relay] confirmation sent to ${email}`))
+      .catch(e => console.error('[relay] confirmation error:', e.message));
+
+    // 4b. Archive copy to owner on every submission
+    if (ARCHIVE_EMAIL) {
+      const archiveHtml = `<!DOCTYPE html>
+<html><body style="background:#fff;font-family:'Courier New',Courier,monospace;color:#111;max-width:560px;margin:0 auto;padding:48px 24px;">
+<p style="font-size:10px;letter-spacing:0.12em;color:#bbb;margin:0 0 24px">relay submission — ${new Date().toISOString()}</p>
+<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 8px">relay sent: <strong>${received ? 'yes' : 'no (first in chain)'}</strong></p>
+<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 8px">from: ${esc(email)}</p>
+<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 8px">name: ${esc(newName || '—')}</p>
+<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 8px">city: ${esc(newCity || '—')}</p>
+<p style="font-size:11px;letter-spacing:0.08em;color:#888;margin:0 0 28px">message: ${esc(newMsg || '—')}</p>
+<img src="cid:thumb" alt="" style="width:100%;max-width:300px;display:block;margin:0 auto">
+</body></html>`;
+
+      transporter.sendMail({
+        from: fromAddr, to: ARCHIVE_EMAIL,
+        subject: `relay — ${newName || 'anonymous'} — ${newCity || '—'}`,
+        html: archiveHtml,
+        attachments: [{ filename: 'thumb-up.png', content: imgData, encoding: 'base64', cid: 'thumb' }],
+      }).then(() => console.log(`[relay] archive sent to ${ARCHIVE_EMAIL}`))
+        .catch(e => console.error('[relay] archive error:', e.message));
+    }
   }
 
   res.json({ ok: true, received });

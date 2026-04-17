@@ -24,6 +24,8 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false
+      - key: ARCHIVE_EMAIL
+        sync: false
 
 databases:
   - name: thumb-up-postgres
