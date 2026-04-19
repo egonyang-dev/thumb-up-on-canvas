@@ -977,13 +977,21 @@ const Postcard = (() => {
       });
       const data = await res.json();
       if (res.ok) {
-        setStatus(data.received
-          ? 'Sent. A note from a stranger is on its way to you.'
-          : 'Saved. Your note will reach the next person.');
+        if (data.received) {
+          setStatus('Saved. Check your email — a stranger\u2019s note is on its way.');
+        } else if (data.smtpConfigured) {
+          setStatus('Saved. A confirmation is on its way to you.');
+        } else {
+          setStatus('Saved. Your note will reach the next person.');
+        }
         document.getElementById('pc-to').value = '';
         document.getElementById('pc-msg').value = '';
-      } else if (data.error === 'relay unavailable' || data.error === 'relay send failed') {
-        setStatus('Could not reach you right now. Try again later.');
+      } else if (data.error === 'relay unavailable') {
+        setStatus('The relay is temporarily unavailable. Try again later.');
+      } else if (data.error === 'relay send failed') {
+        setStatus('Could not deliver — check your email address and try again.');
+      } else if (data.error === 'relay storage unavailable') {
+        setStatus('Storage error. Try again in a moment.');
       } else {
         setStatus('Could not send.');
       }
